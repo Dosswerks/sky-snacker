@@ -15,12 +15,12 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 #snack-col{display:flex;flex-direction:column;gap:6px}
 #snack-col button{width:90px;height:44px;font-size:12px;font-weight:bold;border:2px solid #4466aa;border-radius:8px;background:#2a2a4a;color:#fff;cursor:pointer;touch-action:manipulation}
 #snack-col button.active{background:#4466aa;border-color:#88aaff}
-#dpad{position:relative;width:170px;height:170px}
+#dpad{position:relative;width:150px;height:150px}
 #dpad button{position:absolute;width:56px;height:56px;font-size:22px;font-weight:bold;border:3px solid #c8a830;border-top-color:#f0d870;border-left-color:#e8d060;border-bottom-color:#806010;border-right-color:#907020;border-radius:50%;background:linear-gradient(145deg,#d8b840,#a08020);color:#3a2a00;cursor:pointer;touch-action:manipulation;box-shadow:3px 4px 8px rgba(0,0,0,0.7)}
-#dpad .up{top:0;left:57px}
-#dpad .down{bottom:0;left:57px}
-#dpad .left{top:57px;left:0}
-#dpad .right{top:57px;right:0}
+#dpad .up{top:0;left:47px}
+#dpad .down{bottom:0;left:47px}
+#dpad .left{top:47px;left:0}
+#dpad .right{top:47px;right:0}
 #start-screen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0a2a;z-index:10;cursor:pointer}
 #start-screen.has-box-art{gap:0}
 #start-screen h1{font-size:38px;color:#ffcc00}
@@ -349,23 +349,61 @@ function draw(){
         X.lineTo(W-10,ROW_TOP-10);X.closePath();X.clip();
         X.fillStyle='#2a2a3a';X.fillRect(0,0,W,ROW_TOP);
         // Cockpit instrument circles — arced arrays for pilot and copilot
-        X.fillStyle='#3a3a4a';
-        // Helper: draw gauges in an arc
-        function drawGaugeArc(centerX,centerY,radius,count,gaugeR){
-            const startA=-Math.PI*0.8,endA=-Math.PI*0.2;
-            for(let i=0;i<count;i++){
-                const a=startA+(endA-startA)*i/(count-1);
-                const gx=centerX+Math.cos(a)*radius;
-                const gy=centerY+Math.sin(a)*radius;
-                X.beginPath();X.arc(gx,gy,gaugeR,0,Math.PI*2);X.fill();
-            }
-        }
-        // Pilot side (left)
-        drawGaugeArc(AISLE_X-85,44,26,4,5);
-        drawGaugeArc(AISLE_X-85,44,12,3,3.5);
-        // Copilot side (right)
-        drawGaugeArc(AISLE_X+85,44,26,4,5);
-        drawGaugeArc(AISLE_X+85,44,12,3,3.5);
+        X.fillStyle='#1a1a25';
+        // 737-style cockpit panel — spans seating width
+        const cpWallW=36;
+        const panelL=cpWallW+8, panelR=W-cpWallW-8;
+        const panelW=panelR-panelL;
+        const panelMid=(panelL+panelR)/2;
+        // Main instrument panel background — slightly lighter than cockpit
+        X.fillStyle='#222230';
+        X.fillRect(panelL,14,panelW,34);
+        // Glareshield strip across top
+        X.fillStyle='#1a1a22';
+        X.fillRect(panelL,12,panelW,5);
+        // Center pedestal strip
+        X.fillStyle='#1a1a22';
+        X.fillRect(panelMid-16,17,32,30);
+        // --- Pilot side (left half) ---
+        const pCx=panelL+(panelMid-panelL)/2;
+        // Large PFD (attitude indicator)
+        X.fillStyle='#1a1a25';
+        X.beginPath();X.arc(pCx-18,32,11,0,Math.PI*2);X.fill();
+        // Large ND (navigation display)
+        X.beginPath();X.arc(pCx+18,32,11,0,Math.PI*2);X.fill();
+        // Smaller gauges — airspeed, altimeter, VSI
+        X.beginPath();X.arc(pCx-42,30,7,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(pCx+42,30,7,0,Math.PI*2);X.fill();
+        // Tiny gauges row above
+        X.beginPath();X.arc(pCx-12,19,4,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(pCx,19,4,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(pCx+12,19,4,0,Math.PI*2);X.fill();
+        // Small rectangular displays (EFIS)
+        X.fillRect(pCx-52,22,8,14);
+        X.fillRect(pCx+46,22,8,14);
+        // --- Copilot side (right half) ---
+        const cCx=panelMid+(panelR-panelMid)/2;
+        // Large PFD
+        X.beginPath();X.arc(cCx-18,32,11,0,Math.PI*2);X.fill();
+        // Large ND
+        X.beginPath();X.arc(cCx+18,32,11,0,Math.PI*2);X.fill();
+        // Smaller gauges
+        X.beginPath();X.arc(cCx-42,30,7,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(cCx+42,30,7,0,Math.PI*2);X.fill();
+        // Tiny gauges row above
+        X.beginPath();X.arc(cCx-12,19,4,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(cCx,19,4,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(cCx+12,19,4,0,Math.PI*2);X.fill();
+        // Small rectangular displays (EFIS)
+        X.fillRect(cCx-52,22,8,14);
+        X.fillRect(cCx+46,22,8,14);
+        // Center console — throttle quadrant and small switches
+        X.fillStyle='#161620';
+        X.fillRect(panelMid-10,20,20,24);
+        X.fillStyle='#1a1a25';
+        X.beginPath();X.arc(panelMid-4,28,3,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(panelMid+4,28,3,0,Math.PI*2);X.fill();
+        X.fillRect(panelMid-6,35,12,6);
         X.restore();
         // Aisle floor — lighter carpet, distinct from Bridget
         const aisleW=50;
