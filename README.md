@@ -51,11 +51,12 @@ Five total misses (expired patience + missed trash) ends the game.
 
 ## Difficulty Progression
 
-- Completing enough deliveries advances to the next level
-- Each level increases the frequency of snack requests
-- Patience timers get shorter
-- More simultaneous requests appear
-- Trash is thrown back sooner
+- Completing enough deliveries advances to the next level (all active orders must be cleared first)
+- Request spawn interval starts at ~2 seconds and drops by ~0.33s per level (floor ~0.6s)
+- Patience timers start at ~9 seconds on level 1 and shrink by ~1.3s per level (floor ~4s)
+- Trash return delay shortens each level, giving less breathing room
+- Trash slide speed increases by 0.2 per level
+- More simultaneous requests appear as spawn rate increases
 
 ---
 
@@ -78,12 +79,15 @@ The core concept — Tapper on an airplane — required adapting the classic bar
 
 ### Key Technical Features
 
+- **Level announcement**: "LEVEL X" displays for 2 seconds before each level begins, pausing all action
+- **Level completion**: All active orders, trash, and flying snacks must be cleared before advancing — no new requests spawn once the serve target is met
 - **Thought bubble system**: Each passenger has an independent patience timer with visual color progression and urgency pulse animation
 - **Arc trajectory**: Flung snacks follow a sine-curve arc over passenger heads to reach the target seat
 - **Auto-targeting**: Snacks automatically find the requesting passenger in the served row and side
-- **Trash physics**: Trash items slide from the served seat back toward the aisle at variable speeds
+- **Trash physics**: Trash items slide from the served seat back toward the aisle at variable speeds that increase per level
+- **Cockpit and galley**: Drawn cockpit with fuselage curve, sky, clouds, and instrument gauge arrays for pilot/copilot stations; galley area with snack cart silhouettes and large selected-snack indicator
 - **Mobile controls**: Touch button panel appears automatically on mobile devices
-- **Sprite system**: 3-frame Bridget animation (center, left-fling, right-fling)
+- **Sprite system**: 3-frame Bridget animation (center, left-fling, right-fling) with cart and wheels
 
 ### Asset System
 

@@ -137,7 +137,8 @@ function initGame(){
     G={run:false,over:false,score:0,level:1,missed:0,maxMissed:5,
        playerRow:2,selectedSnack:0,flingAnim:0,flingDir:0,
        passengers,flyingSnacks:[],
-       requestTimer:0,requestInterval:240,requestCount:0,
+       requestTimer:90,requestInterval:120,requestCount:0,
+       levelAnnounce:120,
        trashItems:[],levelServed:0,levelTarget:6};
     updUI();
 }
@@ -182,9 +183,11 @@ function getSeatX(side,seat){
 <script>
 function update(){
     if(!G.run||G.over)return;
+    // Level announcement pause
+    if(G.levelAnnounce>0){G.levelAnnounce--;return;}
     // Spawn requests
     G.requestTimer++;
-    if(G.requestTimer>=G.requestInterval){
+    if(G.requestTimer>=G.requestInterval&&G.levelServed<G.levelTarget){
         G.requestTimer=0;
         const avail=G.passengers.filter(p=>!p.requesting&&!p.served);
         if(avail.length>0){
@@ -192,11 +195,11 @@ function update(){
             p.requesting=true;
             p.snackType=Math.floor(Math.random()*3);
             p.patience=0;
-            p.maxPatience=720-G.level*50;
-            if(p.maxPatience<420)p.maxPatience=420;
+            p.maxPatience=540-G.level*80;
+            if(p.maxPatience<240)p.maxPatience=240;
         }
         // Increase difficulty
-        G.requestInterval=Math.max(60,240-G.level*25);
+        G.requestInterval=Math.max(35,120-G.level*20);
     }
     // Update patience and active states
     for(const p of G.passengers){
@@ -229,7 +232,8 @@ function update(){
                     f.target.requesting=false;
                     f.target.served=true;
                     f.target.throwingTrash=true;
-                    f.target.trashTimer=360+Math.floor(Math.random()*120);
+                    f.target.trashTimer=120+Math.floor(Math.random()*60)-G.level*10;
+                    if(f.target.trashTimer<40)f.target.trashTimer=40;
                     G.score+=100;
                     G.levelServed++;
                     ps('catch');
@@ -255,7 +259,7 @@ function update(){
                 x:getSeatX(p.side,p.seat),
                 y:ROW_TOP+p.row*ROW_H+30,
                 row:p.row,side:p.side,
-                speed:p.side*-0.9,
+                speed:p.side*-(0.9+G.level*0.2),
                 targetX:AISLE_X,
                 sourcePassenger:p
             });
@@ -283,8 +287,9 @@ function update(){
             updUI();
         }
     }
-    // Level up
-    if(G.levelServed>=G.levelTarget){
+    // Level up — only after all active orders, trash, and flying snacks are cleared
+    const anyActive=G.passengers.some(p=>p.requesting||p.served||p.throwingTrash);
+    if(G.levelServed>=G.levelTarget&&!anyActive&&G.trashItems.length===0&&G.flyingSnacks.length===0){
         G.level++;
         G.levelServed=0;
         G.levelTarget=8+G.level*2;
@@ -292,6 +297,7 @@ function update(){
         for(const p of G.passengers){p.served=false;p.requesting=false;p.throwingTrash=false;p.active=false;p.failTimer=0;}
         G.trashItems=[];
         G.flyingSnacks=[];
+        G.levelAnnounce=120;
         ps('level');
         updUI();
     }
@@ -313,7 +319,7 @@ function draw(){
             glow.addColorStop(0,'rgba(220,195,130,0.14)');glow.addColorStop(1,'rgba(0,0,0,0)');
             X.fillStyle=glow;X.fillRect(0,ly-50,W,100);
         }
-        // Nose of plane — rounded top with animated sky outside
+        // Nose of plane — sky outside, cockpit inside
         X.save();
         X.beginPath();X.rect(0,0,W,ROW_TOP-10);X.clip();
         X.fillStyle='#70aadd';X.fillRect(0,0,W,ROW_TOP-10);
@@ -335,17 +341,32 @@ function draw(){
         X.lineTo(W,ROW_TOP-10);X.closePath();X.fill();
         X.strokeStyle='#7a7a88';X.lineWidth=2;
         X.beginPath();X.moveTo(10,20);X.quadraticCurveTo(W/2,-12,W-10,20);X.stroke();
-        // Ceiling interior
-        X.fillStyle='#3a4870';X.fillRect(10,ROW_TOP-30,W-20,22);
-        // Ceiling light strip — brighter
-        X.fillStyle='rgba(220,200,140,0.25)';X.fillRect(AISLE_X-30,0,60,ROW_TOP-10);
-        // Overhead bins — lighter navy with gold trim
-        X.fillStyle='#2e3860';
-        X.fillRect(10,ROW_TOP-30,AISLE_X-70,22);
-        X.fillRect(AISLE_X+60,ROW_TOP-30,AISLE_X-70,22);
-        X.fillStyle='#b0a050';
-        X.fillRect(10,ROW_TOP-10,AISLE_X-70,2);
-        X.fillRect(AISLE_X+60,ROW_TOP-10,AISLE_X-70,2);
+        // Cockpit interior — galley-colored fill inside the nose
+        X.save();
+        X.beginPath();
+        X.moveTo(10,ROW_TOP-10);X.lineTo(10,22);
+        X.quadraticCurveTo(W/2,-10,W-10,22);
+        X.lineTo(W-10,ROW_TOP-10);X.closePath();X.clip();
+        X.fillStyle='#2a2a3a';X.fillRect(0,0,W,ROW_TOP);
+        // Cockpit instrument circles — arced arrays for pilot and copilot
+        X.fillStyle='#3a3a4a';
+        // Helper: draw gauges in an arc
+        function drawGaugeArc(centerX,centerY,radius,count,gaugeR){
+            const startA=-Math.PI*0.8,endA=-Math.PI*0.2;
+            for(let i=0;i<count;i++){
+                const a=startA+(endA-startA)*i/(count-1);
+                const gx=centerX+Math.cos(a)*radius;
+                const gy=centerY+Math.sin(a)*radius;
+                X.beginPath();X.arc(gx,gy,gaugeR,0,Math.PI*2);X.fill();
+            }
+        }
+        // Pilot side (left)
+        drawGaugeArc(AISLE_X-85,44,26,4,5);
+        drawGaugeArc(AISLE_X-85,44,12,3,3.5);
+        // Copilot side (right)
+        drawGaugeArc(AISLE_X+85,44,26,4,5);
+        drawGaugeArc(AISLE_X+85,44,12,3,3.5);
+        X.restore();
         // Aisle floor — lighter carpet, distinct from Bridget
         const aisleW=50;
         X.fillStyle='#3a3a55';
@@ -401,17 +422,32 @@ function draw(){
         X.fillStyle='#2a2a3a';X.fillRect(0,galleyY,W,H-galleyY);
         // Counter top
         X.fillStyle='#4a4a5a';X.fillRect(40,galleyY,W-80,6);
-        // Galley cabinets
-        X.fillStyle='#333345';
-        X.fillRect(50,galleyY+10,80,40);X.fillRect(W-130,galleyY+10,80,40);
-        X.fillRect(180,galleyY+10,120,40);
-        // Cabinet handles
-        X.fillStyle='#888';
-        X.fillRect(80,galleyY+28,20,3);X.fillRect(W-100,galleyY+28,20,3);
-        // Cabinet labels
-        X.fillStyle='#666';X.font='bold 8px Arial';X.textAlign='center';
-        X.fillText('SNACKS',90,galleyY+22);
-        X.fillText('DRINKS',W-90,galleyY+22);
+        // Galley equipment — two snack carts per side, centered behind seating areas
+        const geY=galleyY+10;
+        const cartH=Math.min(40,H-galleyY-24);
+        const cartW=36;
+        // Draw a cart silhouette at given x
+        function drawCart(cx,cy,cw,ch){
+            X.fillStyle='#3a3a4a';
+            X.fillRect(cx,cy,cw,ch);
+            X.fillRect(cx-2,cy,cw+4,3); // handle top
+            X.fillStyle='#2a2a3a';
+            X.fillRect(cx+3,cy+Math.floor(ch*0.35),cw-6,2); // shelf
+            X.fillRect(cx+3,cy+Math.floor(ch*0.65),cw-6,2); // shelf
+            X.fillStyle='#555';
+            X.beginPath();X.arc(cx+5,cy+ch+3,3,0,Math.PI*2);X.fill();
+            X.beginPath();X.arc(cx+cw-5,cy+ch+3,3,0,Math.PI*2);X.fill();
+        }
+        // Left seating center: between wall (36) and aisle (AISLE_X-25) 
+        const leftCenter=(wallW+AISLE_X-25)/2;
+        // Right seating center: between aisle (AISLE_X+25) and wall (W-wallW)
+        const rightCenter=(AISLE_X+25+W-wallW)/2;
+        // Two carts on left side, spaced around left seating center
+        drawCart(leftCenter-cartW-12,geY,cartW,cartH);
+        drawCart(leftCenter+12,geY,cartW,cartH);
+        // Two carts on right side, spaced around right seating center
+        drawCart(rightCenter-cartW-12,geY,cartW,cartH);
+        drawCart(rightCenter+12,geY,cartW,cartH);
         X.textAlign='left';
     }
     if(!G.run&&!G.over)return;
@@ -495,10 +531,10 @@ function draw(){
     for(const t of G.trashItems){
         if(img.trash){X.drawImage(img.trash,t.x-10,t.y-10,20,20);}
         else{
-            X.fillStyle='#aa8866';
+            X.fillStyle='#fff';
             X.fillRect(t.x-8,t.y-6,16,12);
-            X.fillStyle='#886644';
-            X.fillRect(t.x-6,t.y-4,12,8);
+            X.strokeStyle='#ccc';X.lineWidth=1;
+            X.strokeRect(t.x-8,t.y-6,16,12);
         }
     }
 
@@ -523,6 +559,10 @@ function draw(){
         // Cart — lighter grey metallic, stands out from aisle
         X.fillStyle='#8a9098';X.fillRect(bx-18,by+30,36,20);
         X.fillStyle='#a0a8b0';X.fillRect(bx-16,by+32,32,16);
+        // Cart wheels
+        X.fillStyle='#555';
+        X.beginPath();X.arc(bx-12,by+53,3.5,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(bx+12,by+53,3.5,0,Math.PI*2);X.fill();
         // Body — navy uniform
         X.fillStyle='#1a2555';X.fillRect(bx-12,by+5,24,28);
         // Gold trim on sleeves
@@ -561,11 +601,13 @@ function draw(){
     }
     if(G.flingAnim>0)G.flingAnim--;
 
-    // Selected snack in galley center — both mobile and desktop
-    const galleySnackY=ROW_TOP+ROWS*ROW_H+20;
-    X.font='bold 36px Arial';X.textAlign='center';
-    X.fillText(SNACK_EMOJI[G.selectedSnack],AISLE_X,galleySnackY+42);
-    X.textAlign='left';
+    // Selected snack in galley center — centered between counter and menu bar
+    const galleySnackTop=ROW_TOP+ROWS*ROW_H+26;
+    const galleySnackBot=H-44;
+    const galleyCenterY=galleySnackTop+(galleySnackBot-galleySnackTop)/2;
+    X.font='bold 36px Arial';X.textAlign='center';X.textBaseline='middle';
+    X.fillText(SNACK_EMOJI[G.selectedSnack],AISLE_X,galleyCenterY);
+    X.textAlign='left';X.textBaseline='alphabetic';
 
     const isMobile='ontouchstart' in window;
     if(!isMobile){
@@ -591,6 +633,14 @@ function draw(){
     // Row indicator — covers seat area
     X.fillStyle='rgba(255,255,0,0.15)';
     X.fillRect(0,ROW_TOP+G.playerRow*ROW_H+30,W,ROW_H);
+
+    // Level announcement overlay
+    if(G.levelAnnounce>0){
+        X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(0,0,W,H);
+        X.fillStyle='#ffcc00';X.font='bold 52px Arial';X.textAlign='center';
+        X.fillText('LEVEL '+G.level,W/2,H/2+16);
+        X.textAlign='left';
+    }
 
     // Game over
     if(G.over){
