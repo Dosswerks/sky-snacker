@@ -85,11 +85,11 @@ const A={
     snack2Image:'assets/snack-soda.png',
     trashImage:'assets/trash.png',
     serveSound:'assets/serve.mp3',
-    crashSound:'assets/crash.mp3',
     catchSound:'assets/catch.mp3',
     angrySound:'assets/angry.mp3',
     wrongSound:'assets/wrong.mp3',
     levelSound:'assets/level.mp3',
+    announceSound:'assets/announce.mp3',
     backgroundMusic:'assets/music.mp3',
 };
 const C=document.getElementById('game'),X=C.getContext('2d');
@@ -184,7 +184,7 @@ function getSeatX(side,seat){
 function update(){
     if(!G.run||G.over)return;
     // Level announcement pause
-    if(G.levelAnnounce>0){G.levelAnnounce--;return;}
+    if(G.levelAnnounce>0){G.levelAnnounce--;if(G.levelAnnounce===119)ps('announce');return;}
     // Spawn requests
     G.requestTimer++;
     if(G.requestTimer>=G.requestInterval&&G.levelServed<G.levelTarget){
@@ -502,8 +502,6 @@ function draw(){
                         const bx=sx,by=ry+32;
                         X.fillStyle=bubbleColor;
                         X.beginPath();X.ellipse(bx,by,16,12,0,0,Math.PI*2);X.fill();
-                        X.strokeStyle='#888';X.lineWidth=1;
-                        X.beginPath();X.ellipse(bx,by,16,12,0,0,Math.PI*2);X.stroke();
                         // Snack icon
                         X.fillStyle=SNACK_COLORS[p.snackType];
                         X.font='bold 14px Arial';X.textAlign='center';
@@ -690,8 +688,9 @@ async function init(){
     if(img.boxArt){document.getElementById('box-art').src=A.boxArtImage;
         document.getElementById('box-art-container').classList.remove('hidden');
         SS.classList.add('has-box-art');}
-    ls('serve',A.serveSound);ls('crash',A.crashSound);ls('catch',A.catchSound);
+    ls('serve',A.serveSound);ls('catch',A.catchSound);
     ls('angry',A.angrySound);ls('wrong',A.wrongSound);ls('level',A.levelSound);
+    ls('announce',A.announceSound);
     if(A.backgroundMusic){music=new Audio(A.backgroundMusic);music.loop=true;music.volume=0.5;}
     initGame();gameLoop();
 }
