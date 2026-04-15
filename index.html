@@ -16,7 +16,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 #snack-col button{width:90px;height:44px;font-size:12px;font-weight:bold;border:2px solid #4466aa;border-radius:8px;background:#2a2a4a;color:#fff;cursor:pointer;touch-action:manipulation}
 #snack-col button.active{background:#4466aa;border-color:#88aaff}
 #dpad{position:relative;width:140px;height:140px}
-#dpad button{position:absolute;width:46px;height:46px;font-size:20px;font-weight:bold;border:none;border-radius:50%;background:linear-gradient(145deg,#e0c050,#a08020);color:#3a2a00;cursor:pointer;touch-action:manipulation;box-shadow:2px 3px 6px rgba(0,0,0,0.5),inset 1px 1px 2px rgba(255,240,180,0.5),inset -1px -1px 2px rgba(80,60,10,0.3)}
+#dpad button{position:absolute;width:46px;height:46px;font-size:20px;font-weight:bold;border:3px solid #c8a830;border-top-color:#f0d870;border-left-color:#e8d060;border-bottom-color:#806010;border-right-color:#907020;border-radius:50%;background:linear-gradient(145deg,#d8b840,#a08020);color:#3a2a00;cursor:pointer;touch-action:manipulation;box-shadow:3px 4px 8px rgba(0,0,0,0.7)}
 #dpad .up{top:0;left:47px}
 #dpad .down{bottom:0;left:47px}
 #dpad .left{top:47px;left:0}
@@ -75,7 +75,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 <script>
 const A={
     boxArtImage:'assets/box-art.png',
-    cabinImage:'assets/cabin.png',
+    cabinImage:null,
     bridgetCenter:'assets/bridget-center.png',
     bridgetLeft:'assets/bridget-left.png',
     bridgetRight:'assets/bridget-right.png',
@@ -313,8 +313,18 @@ function draw(){
             glow.addColorStop(0,'rgba(220,195,130,0.14)');glow.addColorStop(1,'rgba(0,0,0,0)');
             X.fillStyle=glow;X.fillRect(0,ly-50,W,100);
         }
-        // Ceiling — lighter
-        X.fillStyle='#3a4870';X.fillRect(0,0,W,ROW_TOP-10);
+        // Nose of plane — rounded top with sky outside
+        X.fillStyle='#88bbee';X.fillRect(0,0,W,ROW_TOP-10); // sky
+        X.fillStyle='#5a5a68'; // fuselage
+        X.beginPath();
+        X.moveTo(0,ROW_TOP-10);X.lineTo(0,20);
+        X.quadraticCurveTo(W/2,-15,W,20);
+        X.lineTo(W,ROW_TOP-10);X.closePath();X.fill();
+        // Fuselage highlight
+        X.strokeStyle='#7a7a88';X.lineWidth=2;
+        X.beginPath();X.moveTo(10,20);X.quadraticCurveTo(W/2,-12,W-10,20);X.stroke();
+        // Ceiling interior
+        X.fillStyle='#3a4870';X.fillRect(10,ROW_TOP-30,W-20,22);
         // Ceiling light strip — brighter
         X.fillStyle='rgba(220,200,140,0.25)';X.fillRect(AISLE_X-30,0,60,ROW_TOP-10);
         // Overhead bins — lighter navy with gold trim
@@ -374,6 +384,25 @@ function draw(){
             X.beginPath();X.ellipse(rwcx+2,cy2,8,3,0,0,Math.PI*2);X.fill();
             X.restore();
         }
+        // Galley area below last row
+        const galleyY=ROW_TOP+ROWS*ROW_H+20;
+        X.fillStyle='#2a2a3a';X.fillRect(0,galleyY,W,H-galleyY);
+        // Counter top
+        X.fillStyle='#4a4a5a';X.fillRect(40,galleyY,W-80,6);
+        // Galley cabinets
+        X.fillStyle='#333345';
+        X.fillRect(50,galleyY+10,80,40);X.fillRect(W-130,galleyY+10,80,40);
+        X.fillRect(180,galleyY+10,120,40);
+        // Cabinet handles
+        X.fillStyle='#888';
+        X.fillRect(80,galleyY+28,20,3);X.fillRect(W-100,galleyY+28,20,3);
+        X.fillRect(220,galleyY+28,40,3);
+        // Cabinet labels
+        X.fillStyle='#666';X.font='bold 8px Arial';X.textAlign='center';
+        X.fillText('SNACKS',90,galleyY+22);
+        X.fillText('DRINKS',W-90,galleyY+22);
+        X.fillText('SERVICE',W/2,galleyY+22);
+        X.textAlign='left';
     }
     if(!G.run&&!G.over)return;
 
@@ -522,23 +551,32 @@ function draw(){
     }
     if(G.flingAnim>0)G.flingAnim--;
 
-    // Snack selection menu — bottom of screen
-    const menuY=H-45,menuH=40;
-    X.fillStyle='rgba(10,10,30,0.85)';X.fillRect(0,menuY,W,menuH);
-    X.strokeStyle='#4466aa';X.lineWidth=1;X.strokeRect(0,menuY,W,menuH);
-    const menuW=W/3;
-    for(let i=0;i<3;i++){
-        const mx=i*menuW,selected=G.selectedSnack===i;
-        // Highlight selected
-        if(selected){X.fillStyle='rgba(68,102,170,0.4)';X.fillRect(mx+2,menuY+2,menuW-4,menuH-4);
-            X.strokeStyle='#88aaff';X.lineWidth=2;X.strokeRect(mx+2,menuY+2,menuW-4,menuH-4);}
-        // Key number
-        X.fillStyle=selected?'#ffcc00':'#888';X.font='bold 12px Arial';X.textAlign='center';
-        X.fillText('['+(i+1)+']',mx+menuW/2,menuY+14);
-        // Snack emoji and name
-        X.fillStyle=selected?'#fff':'#aaa';X.font='bold 14px Arial';
-        X.fillText(SNACK_EMOJI[i]+' '+SNACKS[i],mx+menuW/2,menuY+32);
+    // Snack indicator
+    const isMobile='ontouchstart' in window;
+    if(isMobile){
+        // Mobile: large snack icon in galley area
+        const galleyY=ROW_TOP+ROWS*ROW_H+20;
+        X.font='bold 40px Arial';X.textAlign='center';
+        X.fillText(SNACK_EMOJI[G.selectedSnack],AISLE_X,galleyY+42);
         X.textAlign='left';
+    } else {
+        // Desktop: flush with bottom edge, larger icons, key indicators left of icons
+        const menuY=H-40,menuH=40;
+        X.fillStyle='rgba(10,10,30,0.9)';X.fillRect(0,menuY,W,menuH);
+        X.strokeStyle='#4466aa';X.lineWidth=1;X.beginPath();X.moveTo(0,menuY);X.lineTo(W,menuY);X.stroke();
+        const menuW=W/3;
+        for(let i=0;i<3;i++){
+            const mx=i*menuW,selected=G.selectedSnack===i;
+            if(selected){X.fillStyle='rgba(68,102,170,0.4)';X.fillRect(mx+2,menuY+2,menuW-4,menuH-4);
+                X.strokeStyle='#88aaff';X.lineWidth=2;X.strokeRect(mx+2,menuY+2,menuW-4,menuH-4);}
+            // Key number on the left
+            X.fillStyle=selected?'#ffcc00':'#666';X.font='bold 14px Arial';X.textAlign='left';
+            X.fillText('('+( i+1)+')',mx+10,menuY+26);
+            // Large snack icon on the right
+            X.font='bold 24px Arial';X.textAlign='center';
+            X.fillText(SNACK_EMOJI[i],mx+menuW/2+16,menuY+30);
+            X.textAlign='left';
+        }
     }
 
     // Row indicator — covers seat area
