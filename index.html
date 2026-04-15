@@ -304,120 +304,126 @@ function draw(){
     // Cabin background
     if(img.cabin){X.drawImage(img.cabin,0,0,W,H);}
     else{
-        // Default cabin interior — matched to box art palette
+        // Default cabin interior — brighter, matched to box art palette
         const bg=X.createLinearGradient(0,0,0,H);
-        bg.addColorStop(0,'#1a2040');bg.addColorStop(0.05,'#2a3055');bg.addColorStop(0.5,'#1e2848');bg.addColorStop(1,'#141c38');
+        bg.addColorStop(0,'#2e3c65');bg.addColorStop(0.05,'#3a4a78');bg.addColorStop(0.5,'#2a3660');bg.addColorStop(1,'#1e2a50');
         X.fillStyle=bg;X.fillRect(0,0,W,H);
-        // Warm ambient glow from overhead lights
+        // Warm ambient glow from overhead lights — brighter
         for(let r=0;r<ROWS;r++){
             const ly=ROW_TOP+r*ROW_H+10;
-            const glow=X.createRadialGradient(AISLE_X,ly,5,AISLE_X,ly,80);
-            glow.addColorStop(0,'rgba(200,170,100,0.08)');glow.addColorStop(1,'rgba(0,0,0,0)');
-            X.fillStyle=glow;X.fillRect(0,ly-40,W,80);
+            const glow=X.createRadialGradient(AISLE_X,ly,5,AISLE_X,ly,100);
+            glow.addColorStop(0,'rgba(220,195,130,0.14)');glow.addColorStop(1,'rgba(0,0,0,0)');
+            X.fillStyle=glow;X.fillRect(0,ly-50,W,100);
         }
-        // Ceiling
-        X.fillStyle='#2a3458';X.fillRect(0,0,W,ROW_TOP-10);
-        // Ceiling light strip
-        X.fillStyle='rgba(200,180,120,0.15)';X.fillRect(AISLE_X-30,0,60,ROW_TOP-10);
-        // Overhead bins — navy with gold trim
-        X.fillStyle='#222c48';
+        // Ceiling — lighter
+        X.fillStyle='#3a4870';X.fillRect(0,0,W,ROW_TOP-10);
+        // Ceiling light strip — brighter
+        X.fillStyle='rgba(220,200,140,0.25)';X.fillRect(AISLE_X-30,0,60,ROW_TOP-10);
+        // Overhead bins — lighter navy with gold trim
+        X.fillStyle='#2e3860';
         X.fillRect(10,ROW_TOP-30,AISLE_X-70,22);
         X.fillRect(AISLE_X+60,ROW_TOP-30,AISLE_X-70,22);
-        X.fillStyle='#8a7a40';
+        X.fillStyle='#b0a050';
         X.fillRect(10,ROW_TOP-10,AISLE_X-70,2);
         X.fillRect(AISLE_X+60,ROW_TOP-10,AISLE_X-70,2);
-        // Aisle floor — dark carpet
+        // Aisle floor — lighter carpet, distinct from Bridget
         const aisleW=50;
-        X.fillStyle='#1a1a28';
+        X.fillStyle='#3a3a55';
         X.fillRect(AISLE_X-aisleW/2,ROW_TOP-10,aisleW,H-ROW_TOP+10);
         // Aisle carpet pattern
-        X.fillStyle='rgba(100,90,60,0.1)';
+        X.fillStyle='rgba(140,130,90,0.12)';
         for(let y=ROW_TOP;y<H;y+=20){X.fillRect(AISLE_X-aisleW/2,y,aisleW,2);}
+        // Side walls — mid grey
+        X.fillStyle='#6a6a78';
+        X.fillRect(0,ROW_TOP-10,24,H-ROW_TOP+10);
+        X.fillRect(W-24,ROW_TOP-10,24,H-ROW_TOP+10);
+        // Floor under seats — much darker
+        X.fillStyle='#0e0e18';
+        X.fillRect(24,ROW_TOP-10,AISLE_X-aisleW/2-24,H-ROW_TOP+10);
+        X.fillRect(AISLE_X+aisleW/2,ROW_TOP-10,AISLE_X-aisleW/2-24,H-ROW_TOP+10);
         // Windows — warm light coming through
         for(let r=0;r<ROWS;r++){
             const wy=ROW_TOP+r*ROW_H+15;
-            // Left window
-            X.fillStyle='#3a4a6a';
-            X.beginPath();X.ellipse(14,wy+15,9,13,0,0,Math.PI*2);X.fill();
-            X.fillStyle='#5a7aaa';
-            X.beginPath();X.ellipse(14,wy+15,6,9,0,0,Math.PI*2);X.fill();
-            X.fillStyle='rgba(200,180,120,0.2)';
-            X.beginPath();X.ellipse(14,wy+12,4,6,0,0,Math.PI*2);X.fill();
-            // Right window
-            X.fillStyle='#3a4a6a';
-            X.beginPath();X.ellipse(W-14,wy+15,9,13,0,0,Math.PI*2);X.fill();
-            X.fillStyle='#5a7aaa';
-            X.beginPath();X.ellipse(W-14,wy+15,6,9,0,0,Math.PI*2);X.fill();
-            X.fillStyle='rgba(200,180,120,0.2)';
-            X.beginPath();X.ellipse(W-14,wy+12,4,6,0,0,Math.PI*2);X.fill();
+            // Left window — centered in wall
+            X.fillStyle='#4a5a80';
+            X.beginPath();X.ellipse(12,wy+15,9,13,0,0,Math.PI*2);X.fill();
+            const lwg=X.createLinearGradient(6,wy+4,6,wy+26);
+            lwg.addColorStop(0,'#5588cc');lwg.addColorStop(0.5,'#88bbee');lwg.addColorStop(1,'#aaddff');
+            X.fillStyle=lwg;
+            X.beginPath();X.ellipse(12,wy+15,6,9,0,0,Math.PI*2);X.fill();
+            // Right window — centered in wall
+            X.fillStyle='#4a5a80';
+            X.beginPath();X.ellipse(W-12,wy+15,9,13,0,0,Math.PI*2);X.fill();
+            const rwg=X.createLinearGradient(W-18,wy+4,W-18,wy+26);
+            rwg.addColorStop(0,'#5588cc');rwg.addColorStop(0.5,'#88bbee');rwg.addColorStop(1,'#aaddff');
+            X.fillStyle=rwg;
+            X.beginPath();X.ellipse(W-12,wy+15,6,9,0,0,Math.PI*2);X.fill();
         }
     }
     if(!G.run&&!G.over)return;
 
     // Draw seats and passengers
     for(let r=0;r<ROWS;r++){
-        const ry=ROW_TOP+r*ROW_H;
+        const ry=ROW_TOP+r*ROW_H+30; // offset down to sit at bottom of row
         for(let side=-1;side<=1;side+=2){
             for(let s=0;s<SEATS;s++){
                 const sx=getSeatX(side,s);
-                // Seat back — dark navy blue with rounded top
-                X.fillStyle='#1e2a55';
+                // Passenger head — drawn FIRST so seatback covers lower half
+                const p=G.passengers.find(pp=>pp.row===r&&pp.side===side&&pp.seat===s);
+                if(p){
+                    const dim=p.active?1.0:0.4;
+                    X.globalAlpha=dim;
+                    // Head — positioned so top peeks above seatback
+                    X.fillStyle=p.look.head;
+                    X.beginPath();X.arc(sx,ry+14,10,0,Math.PI*2);X.fill();
+                    // Hair by style
+                    X.fillStyle=p.look.hair;
+                    if(p.look.style==='short'){
+                        X.beginPath();X.arc(sx,ry+10,10,Math.PI,Math.PI*2);X.fill();
+                    }else if(p.look.style==='curly'){
+                        X.beginPath();X.arc(sx,ry+9,11,Math.PI*0.8,Math.PI*2.2);X.fill();
+                        for(let c=0;c<5;c++){X.beginPath();X.arc(sx-8+c*4,ry+6,3,0,Math.PI*2);X.fill();}
+                    }else if(p.look.style==='straight'){
+                        X.beginPath();X.arc(sx,ry+11,10,Math.PI,Math.PI*2);X.fill();
+                        X.fillRect(sx-10,ry+11,3,8);X.fillRect(sx+7,ry+11,3,8);
+                    }else if(p.look.style==='wavy'){
+                        X.beginPath();X.arc(sx,ry+9,11,Math.PI*0.7,Math.PI*2.3);X.fill();
+                        X.fillRect(sx-11,ry+9,4,12);X.fillRect(sx+7,ry+9,4,12);
+                    }else{ // bald
+                        X.beginPath();X.arc(sx,ry+12,10,Math.PI*1.1,Math.PI*1.9);X.fill();
+                    }
+                    X.globalAlpha=1.0;
+                }
+                // Seat back — drawn OVER the head so lower half is hidden
+                X.fillStyle='#2a3a6a';
                 X.beginPath();
                 X.moveTo(sx-22,ry+50);X.lineTo(sx-22,ry+18);
                 X.quadraticCurveTo(sx,ry+5,sx+22,ry+18);
                 X.lineTo(sx+22,ry+50);X.closePath();X.fill();
                 // Seat cushion
-                X.fillStyle='#162048';
+                X.fillStyle='#223060';
                 X.fillRect(sx-20,ry+50,40,8);
-                // Passenger head — 5 distinct looks, dimmed when inactive
-                const p=G.passengers.find(pp=>pp.row===r&&pp.side===side&&pp.seat===s);
+                // Thought bubble and indicators — drawn after seat
                 if(p){
-                    const dim=p.active?1.0:0.4;
-                    X.globalAlpha=dim;
-                    // Head
-                    X.fillStyle=p.look.head;
-                    X.beginPath();X.arc(sx,ry+15,10,0,Math.PI*2);X.fill();
-                    // Hair by style
-                    X.fillStyle=p.look.hair;
-                    if(p.look.style==='short'){
-                        X.beginPath();X.arc(sx,ry+11,10,Math.PI,Math.PI*2);X.fill();
-                    }else if(p.look.style==='curly'){
-                        X.beginPath();X.arc(sx,ry+10,11,Math.PI*0.8,Math.PI*2.2);X.fill();
-                        for(let c=0;c<5;c++){X.beginPath();X.arc(sx-8+c*4,ry+7,3,0,Math.PI*2);X.fill();}
-                    }else if(p.look.style==='straight'){
-                        X.beginPath();X.arc(sx,ry+12,10,Math.PI,Math.PI*2);X.fill();
-                        X.fillRect(sx-10,ry+12,3,10);X.fillRect(sx+7,ry+12,3,10);
-                    }else if(p.look.style==='wavy'){
-                        X.beginPath();X.arc(sx,ry+10,11,Math.PI*0.7,Math.PI*2.3);X.fill();
-                        X.fillRect(sx-11,ry+10,4,14);X.fillRect(sx+7,ry+10,4,14);
-                    }else{ // bald
-                        X.beginPath();X.arc(sx,ry+13,10,Math.PI*1.1,Math.PI*1.9);X.fill();
-                    }
-                    X.globalAlpha=1.0;
-                    // Thought bubble
                     if(p.requesting){
                         const pct=p.patience/p.maxPatience;
                         const bubbleColor=pct<0.33?'#fff':pct<0.66?'#ffaaaa':'#ff4444';
-                        const bx=sx,by=ry-8;
-                        // Bubble
+                        // Thought bubble ON the seatback
+                        const bx=sx,by=ry+32;
                         X.fillStyle=bubbleColor;
-                        X.beginPath();X.ellipse(bx,by,18,14,0,0,Math.PI*2);X.fill();
+                        X.beginPath();X.ellipse(bx,by,16,12,0,0,Math.PI*2);X.fill();
                         X.strokeStyle='#888';X.lineWidth=1;
-                        X.beginPath();X.ellipse(bx,by,18,14,0,0,Math.PI*2);X.stroke();
-                        // Tail
-                        X.fillStyle=bubbleColor;
-                        X.beginPath();X.arc(bx,by+16,3,0,Math.PI*2);X.fill();
-                        X.beginPath();X.arc(bx,by+21,2,0,Math.PI*2);X.fill();
+                        X.beginPath();X.ellipse(bx,by,16,12,0,0,Math.PI*2);X.stroke();
                         // Snack icon
                         X.fillStyle=SNACK_COLORS[p.snackType];
-                        X.font='bold 16px Arial';X.textAlign='center';
-                        X.fillText(SNACK_EMOJI[p.snackType],bx,by+6);
+                        X.font='bold 14px Arial';X.textAlign='center';
+                        X.fillText(SNACK_EMOJI[p.snackType],bx,by+5);
                         X.textAlign='left';
                         // Urgency pulse
-                        if(pct>0.8){
+                        if(pct>0.66){
                             X.strokeStyle=`rgba(255,0,0,${0.3+Math.sin(Date.now()*0.01)*0.3})`;
                             X.lineWidth=2;
-                            X.beginPath();X.ellipse(bx,by,20,16,0,0,Math.PI*2);X.stroke();
+                            X.beginPath();X.ellipse(bx,by,18,14,0,0,Math.PI*2);X.stroke();
                         }
                     }
                     // Served checkmark
@@ -466,9 +472,9 @@ function draw(){
         X.drawImage(img[spriteKey],bx-30,by-10,60,80);
     } else {
         // Default Bridget — navy uniform, gold trim, blonde hair
-        // Cart — grey metallic
-        X.fillStyle='#707880';X.fillRect(bx-18,by+30,36,20);
-        X.fillStyle='#8a9098';X.fillRect(bx-16,by+32,32,16);
+        // Cart — lighter grey metallic, stands out from aisle
+        X.fillStyle='#8a9098';X.fillRect(bx-18,by+30,36,20);
+        X.fillStyle='#a0a8b0';X.fillRect(bx-16,by+32,32,16);
         // Body — navy uniform
         X.fillStyle='#1a2555';X.fillRect(bx-12,by+5,24,28);
         // Gold trim on sleeves
@@ -526,9 +532,9 @@ function draw(){
         X.textAlign='left';
     }
 
-    // Row indicator
+    // Row indicator — covers seat area
     X.fillStyle='rgba(255,255,0,0.15)';
-    X.fillRect(0,ROW_TOP+G.playerRow*ROW_H,W,ROW_H);
+    X.fillRect(0,ROW_TOP+G.playerRow*ROW_H+30,W,ROW_H);
 
     // Game over
     if(G.over){
