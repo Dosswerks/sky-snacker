@@ -16,7 +16,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 #snack-col button{width:90px;height:44px;font-size:12px;font-weight:bold;border:2px solid #4466aa;border-radius:8px;background:#2a2a4a;color:#fff;cursor:pointer;touch-action:manipulation}
 #snack-col button.active{background:#4466aa;border-color:#88aaff}
 #dpad{position:relative;width:140px;height:140px}
-#dpad button{position:absolute;width:46px;height:46px;font-size:20px;font-weight:bold;border:2px solid #4466aa;border-radius:8px;background:#2a2a4a;color:#fff;cursor:pointer;touch-action:manipulation}
+#dpad button{position:absolute;width:46px;height:46px;font-size:20px;font-weight:bold;border:none;border-radius:50%;background:linear-gradient(145deg,#e0c050,#a08020);color:#3a2a00;cursor:pointer;touch-action:manipulation;box-shadow:2px 3px 6px rgba(0,0,0,0.5),inset 1px 1px 2px rgba(255,240,180,0.5),inset -1px -1px 2px rgba(80,60,10,0.3)}
 #dpad .up{top:0;left:47px}
 #dpad .down{bottom:0;left:47px}
 #dpad .left{top:47px;left:0}
@@ -243,8 +243,7 @@ function update(){
             updUI();
         }
     }
-    // Trash throwing — only starts at level 2+
-    if(G.level>=2){
+    // Trash throwing
     for(const p of G.passengers){
         if(!p.throwingTrash)continue;
         p.trashTimer--;
@@ -262,7 +261,6 @@ function update(){
             });
         }
     }
-    } // end level>=2 trash gate
     // Update trash
     for(let i=G.trashItems.length-1;i>=0;i--){
         const t=G.trashItems[i];
@@ -333,31 +331,48 @@ function draw(){
         // Aisle carpet pattern
         X.fillStyle='rgba(140,130,90,0.12)';
         for(let y=ROW_TOP;y<H;y+=20){X.fillRect(AISLE_X-aisleW/2,y,aisleW,2);}
-        // Side walls — mid grey
+        // Side walls — wider, mid grey
+        const wallW=36;
         X.fillStyle='#6a6a78';
-        X.fillRect(0,ROW_TOP-10,24,H-ROW_TOP+10);
-        X.fillRect(W-24,ROW_TOP-10,24,H-ROW_TOP+10);
+        X.fillRect(0,ROW_TOP-10,wallW,H-ROW_TOP+10);
+        X.fillRect(W-wallW,ROW_TOP-10,wallW,H-ROW_TOP+10);
         // Floor under seats — much darker
         X.fillStyle='#0e0e18';
-        X.fillRect(24,ROW_TOP-10,AISLE_X-aisleW/2-24,H-ROW_TOP+10);
-        X.fillRect(AISLE_X+aisleW/2,ROW_TOP-10,AISLE_X-aisleW/2-24,H-ROW_TOP+10);
-        // Windows — warm light coming through
+        X.fillRect(wallW,ROW_TOP-10,AISLE_X-aisleW/2-wallW,H-ROW_TOP+10);
+        X.fillRect(AISLE_X+aisleW/2,ROW_TOP-10,AISLE_X-aisleW/2-wallW,H-ROW_TOP+10);
+        // Windows — larger, aligned with passenger heads, animated sky gradient
+        const winAnim=(Date.now()*0.03)%40; // scrolling animation
         for(let r=0;r<ROWS;r++){
-            const wy=ROW_TOP+r*ROW_H+15;
-            // Left window — centered in wall
-            X.fillStyle='#4a5a80';
-            X.beginPath();X.ellipse(12,wy+15,9,13,0,0,Math.PI*2);X.fill();
-            const lwg=X.createLinearGradient(6,wy+4,6,wy+26);
-            lwg.addColorStop(0,'#5588cc');lwg.addColorStop(0.5,'#88bbee');lwg.addColorStop(1,'#aaddff');
-            X.fillStyle=lwg;
-            X.beginPath();X.ellipse(12,wy+15,6,9,0,0,Math.PI*2);X.fill();
-            // Right window — centered in wall
-            X.fillStyle='#4a5a80';
-            X.beginPath();X.ellipse(W-12,wy+15,9,13,0,0,Math.PI*2);X.fill();
-            const rwg=X.createLinearGradient(W-18,wy+4,W-18,wy+26);
-            rwg.addColorStop(0,'#5588cc');rwg.addColorStop(0.5,'#88bbee');rwg.addColorStop(1,'#aaddff');
-            X.fillStyle=rwg;
-            X.beginPath();X.ellipse(W-12,wy+15,6,9,0,0,Math.PI*2);X.fill();
+            const wy=ROW_TOP+r*ROW_H+30; // aligned with row offset
+            const wcx=wallW/2; // centered in wall
+            // Left window frame
+            X.fillStyle='#4a4a58';
+            X.beginPath();X.ellipse(wcx,wy+12,14,18,0,0,Math.PI*2);X.fill();
+            // Left window glass — animated sky
+            X.save();
+            X.beginPath();X.ellipse(wcx,wy+12,11,15,0,0,Math.PI*2);X.clip();
+            const lwg=X.createLinearGradient(0,wy-10+winAnim,0,wy+40+winAnim);
+            lwg.addColorStop(0,'#4080cc');lwg.addColorStop(0.4,'#60a0dd');lwg.addColorStop(0.7,'#88ccee');lwg.addColorStop(1,'#bbddff');
+            X.fillStyle=lwg;X.fillRect(wcx-12,wy-8,24,42);
+            // Cloud wisps
+            X.fillStyle='rgba(255,255,255,0.3)';
+            const cy1=(wy+winAnim*1.5)%40+wy-5;
+            X.beginPath();X.ellipse(wcx-2,cy1,8,3,0,0,Math.PI*2);X.fill();
+            X.restore();
+            // Right window frame
+            const rwcx=W-wallW/2;
+            X.fillStyle='#4a4a58';
+            X.beginPath();X.ellipse(rwcx,wy+12,14,18,0,0,Math.PI*2);X.fill();
+            // Right window glass — animated sky
+            X.save();
+            X.beginPath();X.ellipse(rwcx,wy+12,11,15,0,0,Math.PI*2);X.clip();
+            const rwg=X.createLinearGradient(0,wy-10+winAnim,0,wy+40+winAnim);
+            rwg.addColorStop(0,'#4080cc');rwg.addColorStop(0.4,'#60a0dd');rwg.addColorStop(0.7,'#88ccee');rwg.addColorStop(1,'#bbddff');
+            X.fillStyle=rwg;X.fillRect(rwcx-12,wy-8,24,42);
+            X.fillStyle='rgba(255,255,255,0.3)';
+            const cy2=(wy+winAnim*1.5+20)%40+wy-5;
+            X.beginPath();X.ellipse(rwcx+2,cy2,8,3,0,0,Math.PI*2);X.fill();
+            X.restore();
         }
     }
     if(!G.run&&!G.over)return;
@@ -394,8 +409,8 @@ function draw(){
                     }
                     X.globalAlpha=1.0;
                 }
-                // Seat back — drawn OVER the head so lower half is hidden
-                X.fillStyle='#2a3a6a';
+                // Seat back — brighter when active
+                X.fillStyle=p&&p.active?'#ffcc00':'#2a3a6a';
                 X.beginPath();
                 X.moveTo(sx-22,ry+50);X.lineTo(sx-22,ry+18);
                 X.quadraticCurveTo(sx,ry+5,sx+22,ry+18);
@@ -426,17 +441,11 @@ function draw(){
                             X.beginPath();X.ellipse(bx,by,18,14,0,0,Math.PI*2);X.stroke();
                         }
                     }
-                    // Served checkmark
-                    if(p.served&&!p.requesting){
-                        X.fillStyle='rgba(0,200,0,0.5)';
-                        X.font='bold 14px Arial';X.textAlign='center';
-                        X.fillText('✓',sx,ry);X.textAlign='left';
-                    }
-                    // Fail X
+                    // Fail X on seatback
                     if(p.failTimer>0){
                         X.fillStyle='#ff0000';
                         X.font='bold 22px Arial';X.textAlign='center';
-                        X.fillText('✗',sx,ry+2);X.textAlign='left';
+                        X.fillText('✗',sx,ry+38);X.textAlign='left';
                     }
                 }
             }
