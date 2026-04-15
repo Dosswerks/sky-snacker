@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sky Snacker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;display:flex;flex-direction:column;align-items:center;min-height:100vh;font-family:Arial,Helvetica,sans-serif;font-weight:bold;color:#fff;overflow-x:hidden;overflow-y:auto;-webkit-user-select:none;user-select:none}
+#ui{width:480px;max-width:100vw;display:flex;justify-content:space-between;padding:8px 10px;font-size:16px;background:#1a1a2a}
+#game-wrapper{position:relative;width:480px;max-width:100vw;border:2px solid #4466aa;overflow:hidden}
+canvas{display:block;width:100%;height:auto;touch-action:none}
+#controls{width:480px;max-width:100vw;display:none;background:#1a1a2a;padding:10px;border:2px solid #4466aa;border-top:none}
+#snack-btns{display:flex;justify-content:center;gap:8px;margin-bottom:8px}
+#snack-btns button{width:80px;height:50px;font-size:13px;font-weight:bold;border:2px solid #4466aa;border-radius:8px;background:#2a2a4a;color:#fff;cursor:pointer}
+#snack-btns button.active{background:#4466aa;border-color:#88aaff}
+#dir-btns{display:flex;justify-content:center;gap:6px}
+#dir-btns button{width:60px;height:44px;font-size:20px;border:2px solid #4466aa;border-radius:8px;background:#2a2a4a;color:#fff;cursor:pointer}
+#start-screen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0a2a;z-index:10;cursor:pointer}
+#start-screen.has-box-art{gap:0}
+#start-screen h1{font-size:38px;color:#ffcc00}
+#start-screen p{font-size:15px;color:#ccc;text-align:center;margin:4px 0}
+#box-art-container{position:relative;width:100%;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#0a0a2a}
+#box-art{display:block;width:100%;height:100%;object-fit:cover}
+#start-screen.has-box-art p{position:absolute;color:#fff;font-size:13px;text-shadow:0 2px 6px rgba(0,0,0,0.9);z-index:11;padding:8px;line-height:1.4}
+#start-screen.has-box-art p:nth-child(3){top:0;left:0;width:160px;height:120px;display:flex;align-items:center;text-align:center;justify-content:center}
+#start-screen.has-box-art p:nth-child(4){top:0;right:0;width:160px;height:120px;display:flex;align-items:center;text-align:center;justify-content:center}
+#start-screen.has-box-art p:last-child{bottom:1px;left:0;right:0;text-align:center;width:100%;height:auto;padding:0}
+.has-box-art #splash-title{display:none}
+.hidden{display:none!important}
+@media(max-width:500px){#controls{display:block}#ui{font-size:13px}}
+</style>
+</head>
+<body>
+<div id="ui">
+<span>SCORE: <span id="score">0</span></span>
+<span>LEVEL: <span id="level">1</span></span>
+<span>MISSED: <span id="missed">0</span>/5</span>
+</div>
+<div id="game-wrapper">
+<canvas id="game" width="480" height="600"></canvas>
+<div id="start-screen">
+<div id="box-art-container" class="hidden"><img id="box-art" src="" alt="Sky Snacker"></div>
+<h1 id="splash-title">SKY SNACKER</h1>
+<p>Arrow keys to move<br>1-2-3 to select snack</p>
+<p>Left/Right to serve<br>Catch the trash!</p>
+<p>Click or tap to start</p>
+</div>
+</div>
+<div id="controls">
+<div id="snack-btns">
+<button id="btn-s0" class="active" onclick="selectSnack(0)">🥨 Pretzel</button>
+<button id="btn-s1" onclick="selectSnack(1)">🍪 Cookie</button>
+<button id="btn-s2" onclick="selectSnack(2)">🥤 Soda</button>
+</div>
+<div id="dir-btns">
+<button onclick="fling(-1)">⬅ Serve</button>
+<button onclick="movePlayer(-1)">⬆</button>
+<button onclick="movePlayer(1)">⬇</button>
+<button onclick="fling(1)">Serve ➡</button>
+</div>
+</div>
+<div style="width:480px;max-width:100vw;text-align:center;padding:10px 0;">
+<a href="story.html" target="_blank" style="color:#ffcc00;font-size:18px;text-decoration:none;">📖 STORY AND INSTRUCTIONS 📖</a>
+<br>
+<span style="color:#777;font-size:13px;">Press R to Restart. Press Q to Quit.</span>
+</div>
+<script>
+const A={
+    boxArtImage:'assets/box-art.png',
+    cabinImage:'assets/cabin.png',
+    bridgetCenter:'assets/bridget-center.png',
+    bridgetLeft:'assets/bridget-left.png',
+    bridgetRight:'assets/bridget-right.png',
+    seatImage:'assets/seat.png',
+    snack0Image:'assets/snack-pretzel.png',
+    snack1Image:'assets/snack-cookie.png',
+    snack2Image:'assets/snack-soda.png',
+    trashImage:'assets/trash.png',
+    serveSound:'assets/serve.mp3',
+    crashSound:'assets/crash.mp3',
+    catchSound:'assets/catch.mp3',
+    angrySound:'assets/angry.mp3',
+    wrongSound:'assets/wrong.mp3',
+    levelSound:'assets/level.mp3',
+    backgroundMusic:'assets/music.mp3',
+};
+const C=document.getElementById('game'),X=C.getContext('2d');
+const W=480,H=600;
+const ROWS=5,SEATS=3;
+const AISLE_X=W/2;
+const ROW_H=80,ROW_TOP=60;
+const SNACKS=['Pretzel','Cookie','Soda'];
+const SNACK_COLORS=['#c8a050','#b07030','#4488cc'];
+const SNACK_EMOJI=['🥨','🍪','🥤'];
+const img={},snd={};
+function li(k,s){return new Promise(r=>{if(!s)return r();const i=new Image();i.onload=()=>{img[k]=i;r()};i.onerror=()=>r();i.src=s})}
+function ls(k,s){if(!s)return;snd[k]=new Audio(s);snd[k].volume=0.6}
+function ps(k){if(!snd[k])return;snd[k].currentTime=0;snd[k].play().catch(()=>{});}
+let music=null;
+function startM(){if(music&&music.paused)music.play().catch(()=>{})}
+function stopM(){if(music){music.pause();music.currentTime=0}}
+</script>
+<script>
+// 5 passenger look types
+const PLOOKS=[
+    {hair:'#2a1a0a',head:'#e8c8a0',style:'short'},   // dark short hair
+    {hair:'#8a4a1a',head:'#f0d0a8',style:'curly'},    // brown curly
+    {hair:'#1a1a1a',head:'#c8a080',style:'straight'},  // black straight
+    {hair:'#cc8833',head:'#ffe0c0',style:'wavy'},      // blonde wavy
+    {hair:'#555',head:'#d8b898',style:'bald'},          // grey/bald
+];
+
+// Game state
+let G={};
+function initGame(){
+    const passengers=[];
+    for(let r=0;r<ROWS;r++){
+        for(let side=-1;side<=1;side+=2){
+            for(let s=0;s<SEATS;s++){
+                const look=PLOOKS[Math.floor(Math.random()*PLOOKS.length)];
+                passengers.push({row:r,side,seat:s,
+                    requesting:false,snackType:-1,patience:0,maxPatience:0,
+                    served:false,throwingTrash:false,trashX:0,trashTimer:0,
+                    failTimer:0,look,
+                    active:false}); // active = requesting or served/eating
+            }
+        }
+    }
+    G={run:false,over:false,score:0,level:1,missed:0,maxMissed:5,
+       playerRow:2,selectedSnack:0,flingAnim:0,flingDir:0,
+       passengers,flyingSnacks:[],
+       requestTimer:0,requestInterval:420,requestCount:0,
+       trashItems:[],levelServed:0,levelTarget:6};
+    updUI();
+}
+function updUI(){
+    document.getElementById('score').textContent=G.score;
+    document.getElementById('level').textContent=G.level;
+    document.getElementById('missed').textContent=G.missed+'/'+G.maxMissed;
+}
+function selectSnack(n){
+    G.selectedSnack=n;
+    for(let i=0;i<3;i++) document.getElementById('btn-s'+i).className=i===n?'active':'';
+}
+function movePlayer(dir){
+    if(!G.run||G.over)return;
+    G.playerRow=Math.max(0,Math.min(ROWS-1,G.playerRow+dir));
+}
+function fling(dir){
+    if(!G.run||G.over||G.flingAnim>0)return;
+    G.flingDir=dir;G.flingAnim=15;
+    // Find requesting passenger in this row on this side
+    const target=G.passengers.find(p=>p.row===G.playerRow&&p.side===dir&&p.requesting);
+    const snackType=G.selectedSnack;
+    const startX=AISLE_X;
+    const startY=ROW_TOP+G.playerRow*ROW_H+ROW_H/2;
+    if(target){
+        const endX=getSeatX(target.side,target.seat);
+        const endY=ROW_TOP+target.row*ROW_H+20;
+        G.flyingSnacks.push({x:startX,y:startY,endX,endY,snackType,target,t:0,dur:50});
+        ps('serve');
+    } else {
+        // No one requesting on this side — wasted fling
+        const endX=dir<0?60:W-60;
+        G.flyingSnacks.push({x:startX,y:startY,endX,endY:startY-20,snackType,target:null,t:0,dur:50});
+    }
+}
+function getSeatX(side,seat){
+    const seatW=52;
+    if(side<0) return AISLE_X-60-seat*seatW;
+    return AISLE_X+60+seat*seatW;
+}
+</script>
+<script>
+function update(){
+    if(!G.run||G.over)return;
+    // Spawn requests
+    G.requestTimer++;
+    if(G.requestTimer>=G.requestInterval){
+        G.requestTimer=0;
+        const avail=G.passengers.filter(p=>!p.requesting&&!p.served);
+        if(avail.length>0){
+            const p=avail[Math.floor(Math.random()*avail.length)];
+            p.requesting=true;
+            p.snackType=Math.floor(Math.random()*3);
+            p.patience=0;
+            p.maxPatience=900-G.level*40;
+            if(p.maxPatience<540)p.maxPatience=540;
+        }
+        // Increase difficulty
+        G.requestInterval=Math.max(120,420-G.level*30);
+    }
+    // Update patience and active states
+    for(const p of G.passengers){
+        p.active=p.requesting||p.served||p.throwingTrash||p.failTimer>0||G.trashItems.some(t=>t.sourcePassenger===p);
+        if(!p.requesting)continue;
+        p.patience++;
+        if(p.patience>=p.maxPatience){
+            // Patience expired — show X for 60 frames (1 second)
+            p.requesting=false;
+            p.failTimer=60;
+            G.missed++;
+            G.score=Math.max(0,G.score-50);
+            ps('angry');
+            if(G.missed>=G.maxMissed){G.over=true;stopM();}
+            updUI();
+        }
+    }
+    // Update fail timers
+    for(const p of G.passengers){
+        if(p.failTimer>0)p.failTimer--;
+    }
+    // Update flying snacks
+    for(let i=G.flyingSnacks.length-1;i>=0;i--){
+        const f=G.flyingSnacks[i];
+        f.t++;
+        if(f.t>=f.dur){
+            if(f.target&&f.target.requesting){
+                if(f.snackType===f.target.snackType){
+                    // Correct snack!
+                    f.target.requesting=false;
+                    f.target.served=true;
+                    f.target.throwingTrash=true;
+                    f.target.trashTimer=600+Math.floor(Math.random()*120);
+                    G.score+=100;
+                    G.levelServed++;
+                    ps('catch');
+                } else {
+                    // Wrong snack
+                    G.score=Math.max(0,G.score-25);
+                    ps('wrong');
+                }
+            }
+            G.flyingSnacks.splice(i,1);
+            updUI();
+        }
+    }
+    // Trash throwing — only starts at level 2+
+    if(G.level>=2){
+    for(const p of G.passengers){
+        if(!p.throwingTrash)continue;
+        p.trashTimer--;
+        if(p.trashTimer<=0){
+            p.throwingTrash=false;
+            p.served=false;
+            // Launch trash toward aisle
+            G.trashItems.push({
+                x:getSeatX(p.side,p.seat),
+                y:ROW_TOP+p.row*ROW_H+30,
+                row:p.row,side:p.side,
+                speed:p.side*-0.6,
+                targetX:AISLE_X,
+                sourcePassenger:p
+            });
+        }
+    }
+    } // end level>=2 trash gate
+    // Update trash
+    for(let i=G.trashItems.length-1;i>=0;i--){
+        const t=G.trashItems[i];
+        t.x+=t.speed;
+        // Check if Bridget catches it
+        if(Math.abs(t.x-AISLE_X)<25&&t.row===G.playerRow){
+            G.trashItems.splice(i,1);
+            G.score+=25;
+            ps('catch');
+            updUI();
+            continue;
+        }
+        // Check if trash reached aisle and missed
+        if((t.side<0&&t.x>=AISLE_X+10)||(t.side>0&&t.x<=AISLE_X-10)){
+            G.trashItems.splice(i,1);
+            G.missed++;
+            G.score=Math.max(0,G.score-25);
+            ps('angry');
+            if(G.missed>=G.maxMissed){G.over=true;stopM();}
+            updUI();
+        }
+    }
+    // Level up
+    if(G.levelServed>=G.levelTarget){
+        G.level++;
+        G.levelServed=0;
+        G.levelTarget=8+G.level*2;
+        // Reset passengers
+        for(const p of G.passengers){p.served=false;p.requesting=false;p.throwingTrash=false;p.active=false;p.failTimer=0;}
+        G.trashItems=[];
+        G.flyingSnacks=[];
+        ps('level');
+        updUI();
+    }
+}
+</script>
+<script>
+function draw(){
+    // Cabin background
+    if(img.cabin){X.drawImage(img.cabin,0,0,W,H);}
+    else{
+        // Default cabin interior — matched to box art palette
+        const bg=X.createLinearGradient(0,0,0,H);
+        bg.addColorStop(0,'#1a2040');bg.addColorStop(0.05,'#2a3055');bg.addColorStop(0.5,'#1e2848');bg.addColorStop(1,'#141c38');
+        X.fillStyle=bg;X.fillRect(0,0,W,H);
+        // Warm ambient glow from overhead lights
+        for(let r=0;r<ROWS;r++){
+            const ly=ROW_TOP+r*ROW_H+10;
+            const glow=X.createRadialGradient(AISLE_X,ly,5,AISLE_X,ly,80);
+            glow.addColorStop(0,'rgba(200,170,100,0.08)');glow.addColorStop(1,'rgba(0,0,0,0)');
+            X.fillStyle=glow;X.fillRect(0,ly-40,W,80);
+        }
+        // Ceiling
+        X.fillStyle='#2a3458';X.fillRect(0,0,W,ROW_TOP-10);
+        // Ceiling light strip
+        X.fillStyle='rgba(200,180,120,0.15)';X.fillRect(AISLE_X-30,0,60,ROW_TOP-10);
+        // Overhead bins — navy with gold trim
+        X.fillStyle='#222c48';
+        X.fillRect(10,ROW_TOP-30,AISLE_X-70,22);
+        X.fillRect(AISLE_X+60,ROW_TOP-30,AISLE_X-70,22);
+        X.fillStyle='#8a7a40';
+        X.fillRect(10,ROW_TOP-10,AISLE_X-70,2);
+        X.fillRect(AISLE_X+60,ROW_TOP-10,AISLE_X-70,2);
+        // Aisle floor — dark carpet
+        const aisleW=50;
+        X.fillStyle='#1a1a28';
+        X.fillRect(AISLE_X-aisleW/2,ROW_TOP-10,aisleW,H-ROW_TOP+10);
+        // Aisle carpet pattern
+        X.fillStyle='rgba(100,90,60,0.1)';
+        for(let y=ROW_TOP;y<H;y+=20){X.fillRect(AISLE_X-aisleW/2,y,aisleW,2);}
+        // Windows — warm light coming through
+        for(let r=0;r<ROWS;r++){
+            const wy=ROW_TOP+r*ROW_H+15;
+            // Left window
+            X.fillStyle='#3a4a6a';
+            X.beginPath();X.ellipse(14,wy+15,9,13,0,0,Math.PI*2);X.fill();
+            X.fillStyle='#5a7aaa';
+            X.beginPath();X.ellipse(14,wy+15,6,9,0,0,Math.PI*2);X.fill();
+            X.fillStyle='rgba(200,180,120,0.2)';
+            X.beginPath();X.ellipse(14,wy+12,4,6,0,0,Math.PI*2);X.fill();
+            // Right window
+            X.fillStyle='#3a4a6a';
+            X.beginPath();X.ellipse(W-14,wy+15,9,13,0,0,Math.PI*2);X.fill();
+            X.fillStyle='#5a7aaa';
+            X.beginPath();X.ellipse(W-14,wy+15,6,9,0,0,Math.PI*2);X.fill();
+            X.fillStyle='rgba(200,180,120,0.2)';
+            X.beginPath();X.ellipse(W-14,wy+12,4,6,0,0,Math.PI*2);X.fill();
+        }
+    }
+    if(!G.run&&!G.over)return;
+
+    // Draw seats and passengers
+    for(let r=0;r<ROWS;r++){
+        const ry=ROW_TOP+r*ROW_H;
+        for(let side=-1;side<=1;side+=2){
+            for(let s=0;s<SEATS;s++){
+                const sx=getSeatX(side,s);
+                // Seat back — dark navy blue with rounded top
+                X.fillStyle='#1e2a55';
+                X.beginPath();
+                X.moveTo(sx-22,ry+50);X.lineTo(sx-22,ry+18);
+                X.quadraticCurveTo(sx,ry+5,sx+22,ry+18);
+                X.lineTo(sx+22,ry+50);X.closePath();X.fill();
+                // Seat cushion
+                X.fillStyle='#162048';
+                X.fillRect(sx-20,ry+50,40,8);
+                // Passenger head — 5 distinct looks, dimmed when inactive
+                const p=G.passengers.find(pp=>pp.row===r&&pp.side===side&&pp.seat===s);
+                if(p){
+                    const dim=p.active?1.0:0.4;
+                    X.globalAlpha=dim;
+                    // Head
+                    X.fillStyle=p.look.head;
+                    X.beginPath();X.arc(sx,ry+15,10,0,Math.PI*2);X.fill();
+                    // Hair by style
+                    X.fillStyle=p.look.hair;
+                    if(p.look.style==='short'){
+                        X.beginPath();X.arc(sx,ry+11,10,Math.PI,Math.PI*2);X.fill();
+                    }else if(p.look.style==='curly'){
+                        X.beginPath();X.arc(sx,ry+10,11,Math.PI*0.8,Math.PI*2.2);X.fill();
+                        for(let c=0;c<5;c++){X.beginPath();X.arc(sx-8+c*4,ry+7,3,0,Math.PI*2);X.fill();}
+                    }else if(p.look.style==='straight'){
+                        X.beginPath();X.arc(sx,ry+12,10,Math.PI,Math.PI*2);X.fill();
+                        X.fillRect(sx-10,ry+12,3,10);X.fillRect(sx+7,ry+12,3,10);
+                    }else if(p.look.style==='wavy'){
+                        X.beginPath();X.arc(sx,ry+10,11,Math.PI*0.7,Math.PI*2.3);X.fill();
+                        X.fillRect(sx-11,ry+10,4,14);X.fillRect(sx+7,ry+10,4,14);
+                    }else{ // bald
+                        X.beginPath();X.arc(sx,ry+13,10,Math.PI*1.1,Math.PI*1.9);X.fill();
+                    }
+                    X.globalAlpha=1.0;
+                    // Thought bubble
+                    if(p.requesting){
+                        const pct=p.patience/p.maxPatience;
+                        const bubbleColor=pct<0.33?'#fff':pct<0.66?'#ffaaaa':'#ff4444';
+                        const bx=sx,by=ry-8;
+                        // Bubble
+                        X.fillStyle=bubbleColor;
+                        X.beginPath();X.ellipse(bx,by,18,14,0,0,Math.PI*2);X.fill();
+                        X.strokeStyle='#888';X.lineWidth=1;
+                        X.beginPath();X.ellipse(bx,by,18,14,0,0,Math.PI*2);X.stroke();
+                        // Tail
+                        X.fillStyle=bubbleColor;
+                        X.beginPath();X.arc(bx,by+16,3,0,Math.PI*2);X.fill();
+                        X.beginPath();X.arc(bx,by+21,2,0,Math.PI*2);X.fill();
+                        // Snack icon
+                        X.fillStyle=SNACK_COLORS[p.snackType];
+                        X.font='bold 16px Arial';X.textAlign='center';
+                        X.fillText(SNACK_EMOJI[p.snackType],bx,by+6);
+                        X.textAlign='left';
+                        // Urgency pulse
+                        if(pct>0.8){
+                            X.strokeStyle=`rgba(255,0,0,${0.3+Math.sin(Date.now()*0.01)*0.3})`;
+                            X.lineWidth=2;
+                            X.beginPath();X.ellipse(bx,by,20,16,0,0,Math.PI*2);X.stroke();
+                        }
+                    }
+                    // Served checkmark
+                    if(p.served&&!p.requesting){
+                        X.fillStyle='rgba(0,200,0,0.5)';
+                        X.font='bold 14px Arial';X.textAlign='center';
+                        X.fillText('✓',sx,ry);X.textAlign='left';
+                    }
+                    // Fail X
+                    if(p.failTimer>0){
+                        X.fillStyle='#ff0000';
+                        X.font='bold 22px Arial';X.textAlign='center';
+                        X.fillText('✗',sx,ry+2);X.textAlign='left';
+                    }
+                }
+            }
+        }
+    }
+
+    // Draw trash
+    for(const t of G.trashItems){
+        if(img.trash){X.drawImage(img.trash,t.x-10,t.y-10,20,20);}
+        else{
+            X.fillStyle='#aa8866';
+            X.fillRect(t.x-8,t.y-6,16,12);
+            X.fillStyle='#886644';
+            X.fillRect(t.x-6,t.y-4,12,8);
+        }
+    }
+
+    // Draw flying snacks
+    for(const f of G.flyingSnacks){
+        const pct=f.t/f.dur;
+        const cx=f.x+(f.endX-f.x)*pct;
+        const cy=f.y+(f.endY-f.y)*pct-Math.sin(pct*Math.PI)*40; // arc
+        X.fillStyle=SNACK_COLORS[f.snackType];
+        X.font='bold 18px Arial';X.textAlign='center';
+        X.fillText(SNACK_EMOJI[f.snackType],cx,cy+6);
+        X.textAlign='left';
+    }
+
+    // Draw Bridget
+    const bx=AISLE_X,by=ROW_TOP+G.playerRow*ROW_H+20;
+    const spriteKey=G.flingAnim>0?(G.flingDir<0?'bridgetLeft':'bridgetRight'):'bridgetCenter';
+    if(img[spriteKey]){
+        X.drawImage(img[spriteKey],bx-30,by-10,60,80);
+    } else {
+        // Default Bridget — navy uniform, gold trim, blonde hair
+        // Cart — grey metallic
+        X.fillStyle='#707880';X.fillRect(bx-18,by+30,36,20);
+        X.fillStyle='#8a9098';X.fillRect(bx-16,by+32,32,16);
+        // Body — navy uniform
+        X.fillStyle='#1a2555';X.fillRect(bx-12,by+5,24,28);
+        // Gold trim on sleeves
+        X.fillStyle='#c8a840';X.fillRect(bx-12,by+28,24,3);
+        // White scarf
+        X.fillStyle='#eee';
+        X.beginPath();X.moveTo(bx-6,by+5);X.lineTo(bx,by+14);X.lineTo(bx+6,by+5);X.fill();
+        // Head
+        X.fillStyle='#ffccaa';X.beginPath();X.arc(bx,by-2,12,0,Math.PI*2);X.fill();
+        // Hair — golden blonde
+        X.fillStyle='#d4a830';
+        X.beginPath();X.arc(bx,by-6,13,Math.PI*0.7,Math.PI*2.3);X.fill();
+        X.fillRect(bx-13,by-6,4,16);X.fillRect(bx+9,by-6,4,16);
+        // Hat — navy with gold wing
+        X.fillStyle='#1a2555';
+        X.fillRect(bx-10,by-16,20,8);
+        X.fillStyle='#c8a840';
+        X.fillRect(bx-4,by-14,8,3);
+        // Eyes — blue
+        X.fillStyle='#4488ff';
+        X.beginPath();X.arc(bx-4,by-3,2.5,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(bx+4,by-3,2.5,0,Math.PI*2);X.fill();
+        // Smile
+        X.strokeStyle='#cc6666';X.lineWidth=1.5;
+        X.beginPath();X.arc(bx,by+2,4,0.1,Math.PI-0.1);X.stroke();
+        // Arms — fling animation
+        if(G.flingAnim>0){
+            X.strokeStyle='#ffccaa';X.lineWidth=4;
+            X.beginPath();X.moveTo(bx,by+12);
+            X.lineTo(bx+G.flingDir*25,by+5);X.stroke();
+            // Gold cuff
+            X.strokeStyle='#c8a840';X.lineWidth=2;
+            X.beginPath();X.moveTo(bx+G.flingDir*22,by+6);
+            X.lineTo(bx+G.flingDir*28,by+4);X.stroke();
+        }
+    }
+    if(G.flingAnim>0)G.flingAnim--;
+
+    // Snack selection menu — bottom of screen
+    const menuY=H-45,menuH=40;
+    X.fillStyle='rgba(10,10,30,0.85)';X.fillRect(0,menuY,W,menuH);
+    X.strokeStyle='#4466aa';X.lineWidth=1;X.strokeRect(0,menuY,W,menuH);
+    const menuW=W/3;
+    for(let i=0;i<3;i++){
+        const mx=i*menuW,selected=G.selectedSnack===i;
+        // Highlight selected
+        if(selected){X.fillStyle='rgba(68,102,170,0.4)';X.fillRect(mx+2,menuY+2,menuW-4,menuH-4);
+            X.strokeStyle='#88aaff';X.lineWidth=2;X.strokeRect(mx+2,menuY+2,menuW-4,menuH-4);}
+        // Key number
+        X.fillStyle=selected?'#ffcc00':'#888';X.font='bold 12px Arial';X.textAlign='center';
+        X.fillText('['+(i+1)+']',mx+menuW/2,menuY+14);
+        // Snack emoji and name
+        X.fillStyle=selected?'#fff':'#aaa';X.font='bold 14px Arial';
+        X.fillText(SNACK_EMOJI[i]+' '+SNACKS[i],mx+menuW/2,menuY+32);
+        X.textAlign='left';
+    }
+
+    // Row indicator
+    X.fillStyle='rgba(255,255,0,0.15)';
+    X.fillRect(0,ROW_TOP+G.playerRow*ROW_H,W,ROW_H);
+
+    // Game over
+    if(G.over){
+        X.fillStyle='rgba(0,0,0,0.75)';X.fillRect(0,0,W,H);
+        X.fillStyle='#ff4444';X.font='bold 40px Arial';X.textAlign='center';
+        X.fillText('GAME OVER',W/2,H/2-30);
+        X.fillStyle='#fff';X.font='bold 20px Arial';
+        X.fillText('Score: '+G.score,W/2,H/2+10);
+        X.fillText('Level: '+G.level,W/2,H/2+40);
+        X.fillText('Tap or press R to restart',W/2,H/2+74);
+        X.textAlign='left';
+    }
+}
+</script>
+<script>
+function gameLoop(){update();draw();requestAnimationFrame(gameLoop);}
+const SS=document.getElementById('start-screen');
+function go(){if(!G.run&&!G.over){G.run=true;SS.classList.add('hidden');startM();
+    if('ontouchstart' in window)document.getElementById('controls').style.display='block';}}
+SS.addEventListener('click',go);
+SS.addEventListener('touchstart',e=>{e.preventDefault();go();},{passive:false});
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowUp'){e.preventDefault();movePlayer(-1);}
+    if(e.key==='ArrowDown'){e.preventDefault();movePlayer(1);}
+    if(e.key==='ArrowLeft'){e.preventDefault();fling(-1);}
+    if(e.key==='ArrowRight'){e.preventDefault();fling(1);}
+    if(e.key==='1')selectSnack(0);
+    if(e.key==='2')selectSnack(1);
+    if(e.key==='3')selectSnack(2);
+    if(e.key==='r'||e.key==='R'){initGame();G.run=true;SS.classList.add('hidden');startM();}
+    if(e.key==='q'||e.key==='Q'){stopM();initGame();SS.classList.remove('hidden');}
+});
+
+C.addEventListener('click',()=>{if(G.over){initGame();G.run=true;startM();}});
+C.addEventListener('touchstart',e=>{e.preventDefault();
+    if(G.over){initGame();G.run=true;startM();}
+},{passive:false});
+
+async function init(){
+    await Promise.all([
+        li('boxArt',A.boxArtImage),li('cabin',A.cabinImage),
+        li('bridgetCenter',A.bridgetCenter),li('bridgetLeft',A.bridgetLeft),li('bridgetRight',A.bridgetRight),
+        li('seat',A.seatImage),li('snack0',A.snack0Image),li('snack1',A.snack1Image),li('snack2',A.snack2Image),
+        li('trash',A.trashImage),
+    ]);
+    if(img.boxArt){document.getElementById('box-art').src=A.boxArtImage;
+        document.getElementById('box-art-container').classList.remove('hidden');
+        SS.classList.add('has-box-art');}
+    ls('serve',A.serveSound);ls('crash',A.crashSound);ls('catch',A.catchSound);
+    ls('angry',A.angrySound);ls('wrong',A.wrongSound);ls('level',A.levelSound);
+    if(A.backgroundMusic){music=new Audio(A.backgroundMusic);music.loop=true;music.volume=0.5;}
+    initGame();gameLoop();
+}
+init();
+</script>
+</body>
+</html>
