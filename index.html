@@ -137,7 +137,7 @@ function initGame(){
     G={run:false,over:false,score:0,level:1,missed:0,maxMissed:5,
        playerRow:2,selectedSnack:0,flingAnim:0,flingDir:0,
        passengers,flyingSnacks:[],
-       requestTimer:90,requestInterval:120,requestCount:0,
+       requestTimer:'ontouchstart' in window?60:90,requestInterval:'ontouchstart' in window?180:120,requestCount:0,
        levelAnnounce:120,
        trashItems:[],levelServed:0,levelTarget:6};
     updUI();
@@ -195,11 +195,12 @@ function update(){
             p.requesting=true;
             p.snackType=Math.floor(Math.random()*3);
             p.patience=0;
-            p.maxPatience=540-G.level*80;
-            if(p.maxPatience<240)p.maxPatience=240;
+            const mob='ontouchstart' in window;
+            p.maxPatience=mob?720-G.level*60:540-G.level*80;
+            if(p.maxPatience<(mob?360:240))p.maxPatience=mob?360:240;
         }
         // Increase difficulty
-        G.requestInterval=Math.max(35,120-G.level*20);
+        G.requestInterval=Math.max('ontouchstart' in window?60:35,('ontouchstart' in window?180:120)-G.level*('ontouchstart' in window?15:20));
     }
     // Update patience and active states
     for(const p of G.passengers){
