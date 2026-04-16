@@ -16,7 +16,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 #snack-col button{width:180px;height:44px;font-size:24px;font-weight:bold;border:2px solid #4466aa;border-radius:8px;background:#2a2a4a;color:#fff;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:4px}
 #snack-col button.active{background:#4466aa;border-color:#88aaff}
 #dpad{position:relative;width:150px;height:150px}
-#dpad button{position:absolute;width:56px;height:56px;font-size:22px;font-weight:bold;border:3px solid #c8a830;border-top-color:#f0d870;border-left-color:#e8d060;border-bottom-color:#806010;border-right-color:#907020;border-radius:50%;background:linear-gradient(145deg,#d8b840,#a08020);color:#3a2a00;cursor:pointer;touch-action:manipulation;box-shadow:3px 4px 8px rgba(0,0,0,0.7)}
+#dpad button{position:absolute;width:56px;height:56px;font-size:28px;font-weight:bold;border:3px solid #c8a830;border-top-color:#f0d870;border-left-color:#e8d060;border-bottom-color:#806010;border-right-color:#907020;border-radius:50%;background:linear-gradient(145deg,#d8b840,#a08020);color:#3a2a00;cursor:pointer;touch-action:manipulation;box-shadow:3px 4px 8px rgba(0,0,0,0.7)}
 #dpad .up{top:0;left:47px}
 #dpad .down{bottom:0;left:47px}
 #dpad .left{top:47px;left:0}
@@ -60,10 +60,10 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 <button id="btn-s2" onclick="selectSnack(2)">3 &#x1F964;</button>
 </div>
 <div id="dpad">
-<button class="up" onclick="movePlayer(-1)">▲▲</button>
+<button class="up" onclick="movePlayer(-1)">▲</button>
 <button class="left" onclick="fling(-1)"><img src="assets/serve-left.png" alt="◄" style="width:28px;height:28px" onerror="this.replaceWith('◄')"></button>
 <button class="right" onclick="fling(1)"><img src="assets/serve-right.png" alt="►" style="width:28px;height:28px" onerror="this.replaceWith('►')"></button>
-<button class="down" onclick="movePlayer(1)">▼▼</button>
+<button class="down" onclick="movePlayer(1)">▼</button>
 </div>
 </div>
 </div>
