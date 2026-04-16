@@ -566,12 +566,12 @@ function draw(){
 
     // Draw trash
     for(const t of G.trashItems){
-        if(img.trash){X.drawImage(img.trash,t.x-10,t.y-10,20,20);}
+        if(img.trash){X.drawImage(img.trash,t.x-20,t.y-20,40,40);}
         else{
             X.fillStyle='#fff';
-            X.fillRect(t.x-8,t.y-6,16,12);
+            X.fillRect(t.x-16,t.y-12,32,24);
             X.strokeStyle='#ccc';X.lineWidth=1;
-            X.strokeRect(t.x-8,t.y-6,16,12);
+            X.strokeRect(t.x-16,t.y-12,32,24);
         }
     }
 
