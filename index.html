@@ -137,7 +137,7 @@ function initGame(){
     G={run:false,over:false,score:0,level:1,missed:0,maxMissed:5,
        playerRow:2,selectedSnack:0,flingAnim:0,flingDir:0,
        passengers,flyingSnacks:[],
-       requestTimer:'ontouchstart' in window?60:90,requestInterval:'ontouchstart' in window?180:120,requestCount:0,
+       requestTimer:'ontouchstart' in window?40:40,requestInterval:'ontouchstart' in window?360:300,requestCount:0,
        levelAnnounce:120,
        trashItems:[],levelServed:0,levelTarget:6};
     updUI();
@@ -196,11 +196,11 @@ function update(){
             p.snackType=Math.floor(Math.random()*3);
             p.patience=0;
             const mob='ontouchstart' in window;
-            p.maxPatience=mob?720-G.level*60:540-G.level*80;
-            if(p.maxPatience<(mob?360:240))p.maxPatience=mob?360:240;
+            p.maxPatience=mob?1200-G.level*60:1020-G.level*60;
+            if(p.maxPatience<(mob?600:480))p.maxPatience=mob?600:480;
         }
         // Increase difficulty
-        G.requestInterval=Math.max('ontouchstart' in window?60:35,('ontouchstart' in window?180:120)-G.level*('ontouchstart' in window?15:20));
+        G.requestInterval=Math.max('ontouchstart' in window?120:100,('ontouchstart' in window?360:300)-G.level*('ontouchstart' in window?15:15));
     }
     // Update patience and active states
     for(const p of G.passengers){
@@ -260,7 +260,7 @@ function update(){
                 x:getSeatX(p.side,p.seat),
                 y:ROW_TOP+p.row*ROW_H+30,
                 row:p.row,side:p.side,
-                speed:p.side*-(0.9+G.level*0.2),
+                speed:p.side*-(0.5+G.level*0.1),
                 targetX:AISLE_X,
                 sourcePassenger:p
             });
