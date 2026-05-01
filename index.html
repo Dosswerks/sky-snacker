@@ -734,8 +734,8 @@ function draw(){
             var qrS=56,qrX=W/2-qrS/2,qrY=H/2+128;
             X.fillStyle='#fff';X.font='bold 12px Arial';
             X.fillText('Enjoying the game? Tips keep the games coming!',W/2,qrY-10);
-            X.fillStyle='#fff';X.fillRect(qrX-3,qrY-3,qrS+6,qrS+6);
-            X.drawImage(qrImg,qrX,qrY,qrS,qrS);
+            X.fillStyle='#fff';X.fillRect(qrX-3,qrY+7,qrS+6,qrS+6);
+            X.drawImage(qrImg,qrX,qrY+10,qrS,qrS);
         }
         X.textAlign='left';
     }
