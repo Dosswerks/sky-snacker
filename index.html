@@ -45,6 +45,8 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 .has-box-art #splash-title{display:none}
 .hidden{display:none!important}
 .tip-jar-section{margin-top:4px;text-align:center}
+.blink-text{animation:blink-anim 1s step-start infinite}
+@keyframes blink-anim{0%,100%{opacity:1}50%{opacity:0}}
 @media(max-width:500px){#controls{display:block}#ui{font-size:13px}}
 </style>
 </head>
@@ -61,7 +63,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none}
 <h1 id="splash-title">SKY SNACKER</h1>
 <p>Arrow keys to move<br>1-2-3 to select snack</p>
 <p>Left/Right to serve<br>Catch the trash!</p>
-<p>Click or tap to start</p>
+<p class="blink-text">Click or tap to start</p>
 </div>
 </div>
 <div id="controls">
@@ -843,7 +845,7 @@ function draw(){
         const blink=Math.floor(Date.now()/500)%2;
         if(blink){
             X.fillStyle='#fff';X.font='bold 22px Arial';X.textAlign='center';
-            X.fillText('CLICK OR TAP TO START',W/2,H/2+16);
+            X.fillText('CLICK OR TAP TO START',W/2,H/2+36);
             X.textAlign='left';
         }
     }
