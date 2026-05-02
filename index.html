@@ -131,6 +131,12 @@ const A={
     wrongSound:'assets/wrong.mp3',
     levelSound:'assets/level.mp3',
     announceSound:'assets/announce.mp3',
+    moveSound:'assets/move.mp3',
+    throwSound:'assets/throw.mp3',
+    trashCatchSound:'assets/trash-catch.mp3',
+    failSound:'assets/fail.mp3',
+    patienceSound:'assets/patience.mp3',
+    gameOverSound:'assets/gameover.mp3',
     backgroundMusic:'assets/music.mp3',
 };
 const C=document.getElementById('game'),X=C.getContext('2d');
@@ -144,7 +150,7 @@ const SNACK_EMOJI=['\u{1F968}','\u{1F36A}','\u{1F964}'];
 const img={},snd={};
 function li(k,s){return new Promise(r=>{if(!s)return r();const i=new Image();i.onload=()=>{img[k]=i;r()};i.onerror=()=>r();i.src=s})}
 function ls(k,s){if(!s)return;snd[k]=new Audio(s);snd[k].volume=0.6}
-function ps(k){if(!snd[k])return;snd[k].currentTime=0;snd[k].play().catch(()=>{});}
+function ps(k){if(!snd[k]||G.attractMode)return;snd[k].currentTime=0;snd[k].play().catch(()=>{});}
 let music=null;
 function startM(){if(music&&music.paused)music.play().catch(()=>{})}
 function stopM(){if(music){music.pause();music.currentTime=0}}
@@ -159,6 +165,98 @@ const PLOOKS=[
     {hair:'#555',head:'#d8b898',style:'bald'},          // grey/bald
 ];
 
+// ---- ATTRACT MODE ----
+const ATTRACT_TITLE_DURATION=480; // ~8 seconds on title at 60fps
+const ATTRACT_DEMO_DURATION=900;  // ~15 seconds of demo
+
+let attractTimer=ATTRACT_TITLE_DURATION;
+let attractPhase='title'; // 'title' or 'demo'
+let attractAITimer=0;
+
+function startAttractDemo(){
+    attractPhase='demo';
+    attractTimer=ATTRACT_DEMO_DURATION;
+    initGame();
+    G.run=true;
+    G.attractMode=true;
+    G.debugInvincible=true;
+    G.requestInterval=60; // fast spawns for demo
+    G.requestTimer=50;    // first order appears almost immediately
+    SS.classList.add('hidden');
+}
+
+function endAttractDemo(){
+    attractPhase='title';
+    attractTimer=ATTRACT_TITLE_DURATION;
+    stopM();
+    initGame();
+    SS.classList.remove('hidden');
+}
+
+function attractAI(){
+    if(!G.run||G.over)return;
+    attractAITimer++;
+    // Find most urgent requesting passenger
+    let urgent=null,bestPat=-1;
+    for(const p of G.passengers){
+        if(!p.requesting)continue;
+        if(p.patience>bestPat){bestPat=p.patience;urgent=p;}
+    }
+    // Check for incoming trash — prioritize catching
+    let trashThreat=null;
+    for(const t of G.trashItems){
+        const dist=Math.abs(t.x-AISLE_X);
+        if(dist<80){trashThreat=t;break;}
+    }
+    if(trashThreat){
+        // Move to trash row
+        if(G.playerRow<trashThreat.row)movePlayerDirect(1);
+        else if(G.playerRow>trashThreat.row)movePlayerDirect(-1);
+        return;
+    }
+    if(urgent){
+        // Move to the passenger's row
+        if(G.playerRow<urgent.row)movePlayerDirect(1);
+        else if(G.playerRow>urgent.row)movePlayerDirect(-1);
+        else{
+            // In the right row — select correct snack and fling
+            if(G.selectedSnack!==urgent.snackType)G.selectedSnack=urgent.snackType;
+            if(G.flingAnim<=0)flingDirect(urgent.side);
+        }
+    } else if(attractAITimer%30===0){
+        // Idle — wander toward center
+        if(G.playerRow<2)movePlayerDirect(1);
+        else if(G.playerRow>2)movePlayerDirect(-1);
+    }
+}
+
+function checkAttractBreak(){
+    return attractInputDetected;
+}
+
+let attractInputDetected=false;
+
+// Direct movement for AI (bypasses run/over checks but not sound)
+function movePlayerDirect(dir){
+    G.playerRow=Math.max(0,Math.min(ROWS-1,G.playerRow+dir));
+}
+function flingDirect(dir){
+    if(G.flingAnim>0)return;
+    G.flingDir=dir;G.flingAnim=15;
+    const target=G.passengers.find(p=>p.row===G.playerRow&&p.side===dir&&p.requesting);
+    const snackType=G.selectedSnack;
+    const startX=AISLE_X;
+    const startY=ROW_TOP+G.playerRow*ROW_H+ROW_H/2;
+    if(target){
+        const endX=getSeatX(target.side,target.seat);
+        const endY=ROW_TOP+target.row*ROW_H+20;
+        G.flyingSnacks.push({x:startX,y:startY,endX,endY,snackType,target,t:0,dur:50});
+    } else {
+        const endX=dir<0?60:W-60;
+        G.flyingSnacks.push({x:startX,y:startY,endX,endY:startY-20,snackType,target:null,t:0,dur:50});
+    }
+}
+
 // Game state
 let G={};
 function initGame(){
@@ -170,7 +268,7 @@ function initGame(){
                 passengers.push({row:r,side,seat:s,
                     requesting:false,snackType:-1,patience:0,maxPatience:0,
                     served:false,throwingTrash:false,trashX:0,trashTimer:0,
-                    failTimer:0,look,
+                    failTimer:0,look,patienceSounded:false,
                     active:false}); // active = requesting or served/eating
             }
         }
@@ -178,9 +276,10 @@ function initGame(){
     G={run:false,over:false,score:0,level:1,missed:0,maxMissed:5,
        playerRow:2,selectedSnack:0,flingAnim:0,flingDir:0,
        passengers,flyingSnacks:[],
-       requestTimer:'ontouchstart' in window?40:40,requestInterval:'ontouchstart' in window?360:300,requestCount:0,
+       requestTimer:40,requestInterval:90,requestCount:0,
        levelAnnounce:120,
-       trashItems:[],levelServed:0,levelTarget:6};
+       trashItems:[],levelServed:0,levelTarget:6,
+       attractMode:false,debugInvincible:false};
     updUI();
 }
 function updUI(){
@@ -194,7 +293,9 @@ function selectSnack(n){
 }
 function movePlayer(dir){
     if(!G.run||G.over)return;
+    const prev=G.playerRow;
     G.playerRow=Math.max(0,Math.min(ROWS-1,G.playerRow+dir));
+    if(G.playerRow!==prev)ps('move');
 }
 function fling(dir){
     if(!G.run||G.over||G.flingAnim>0)return;
@@ -205,6 +306,7 @@ function fling(dir){
     const snackType=G.selectedSnack;
     const startX=AISLE_X;
     const startY=ROW_TOP+G.playerRow*ROW_H+ROW_H/2;
+    ps('throw');
     if(target){
         const endX=getSeatX(target.side,target.seat);
         const endY=ROW_TOP+target.row*ROW_H+20;
@@ -236,26 +338,35 @@ function update(){
             p.requesting=true;
             p.snackType=Math.floor(Math.random()*3);
             p.patience=0;
+            p.patienceSounded=false;
             const mob='ontouchstart' in window;
-            p.maxPatience=mob?1200-G.level*60:1020-G.level*60;
-            if(p.maxPatience<(mob?600:480))p.maxPatience=mob?600:480;
+            p.maxPatience=mob?1200-G.level*60:600-G.level*30;
+            if(p.maxPatience<(mob?600:300))p.maxPatience=mob?600:300;
         }
         // Increase difficulty
-        G.requestInterval=Math.max('ontouchstart' in window?120:100,('ontouchstart' in window?360:300)-G.level*('ontouchstart' in window?15:15));
+        G.requestInterval=Math.max(50,90-G.level*5);
     }
     // Update patience and active states
     for(const p of G.passengers){
         p.active=p.requesting||p.served||p.throwingTrash||p.failTimer>0||G.trashItems.some(t=>t.sourcePassenger===p);
         if(!p.requesting)continue;
         p.patience++;
+        // Patience sound when bubble turns red (>66%)
+        const pct=p.patience/p.maxPatience;
+        if(pct>0.66&&!p.patienceSounded){
+            p.patienceSounded=true;
+            ps('patience');
+        }
         if(p.patience>=p.maxPatience){
             // Patience expired — show X for 60 frames (1 second)
             p.requesting=false;
             p.failTimer=60;
-            G.missed++;
-            G.score=Math.max(0,G.score-50);
-            ps('angry');
-            if(G.missed>=G.maxMissed){G.over=true;stopM();}
+            if(!G.debugInvincible){
+                G.missed++;
+                G.score=Math.max(0,G.score-50);
+                ps('fail');
+                if(G.missed>=G.maxMissed){G.over=true;stopM();ps('gameover');}
+            }
             updUI();
         }
     }
@@ -281,8 +392,10 @@ function update(){
                     ps('catch');
                 } else {
                     // Wrong snack
-                    G.score=Math.max(0,G.score-25);
-                    ps('wrong');
+                    if(!G.debugInvincible){
+                        G.score=Math.max(0,G.score-25);
+                    }
+                    ps('fail');
                 }
             }
             G.flyingSnacks.splice(i,1);
@@ -301,7 +414,7 @@ function update(){
                 x:getSeatX(p.side,p.seat),
                 y:ROW_TOP+p.row*ROW_H+30,
                 row:p.row,side:p.side,
-                speed:p.side*-(0.5+G.level*0.1),
+                speed:p.side*-(1.0+G.level*0.2),
                 targetX:AISLE_X,
                 sourcePassenger:p
             });
@@ -315,17 +428,19 @@ function update(){
         if(Math.abs(t.x-AISLE_X)<25&&t.row===G.playerRow){
             G.trashItems.splice(i,1);
             G.score+=25;
-            ps('catch');
+            ps('trashCatch');
             updUI();
             continue;
         }
         // Check if trash reached aisle and missed
         if((t.side<0&&t.x>=AISLE_X+10)||(t.side>0&&t.x<=AISLE_X-10)){
             G.trashItems.splice(i,1);
-            G.missed++;
-            G.score=Math.max(0,G.score-25);
-            ps('angry');
-            if(G.missed>=G.maxMissed){G.over=true;stopM();}
+            if(!G.debugInvincible){
+                G.missed++;
+                G.score=Math.max(0,G.score-25);
+                ps('fail');
+                if(G.missed>=G.maxMissed){G.over=true;stopM();ps('gameover');}
+            }
             updUI();
         }
     }
@@ -336,7 +451,7 @@ function update(){
         G.levelServed=0;
         G.levelTarget=8+G.level*2;
         // Reset passengers
-        for(const p of G.passengers){p.served=false;p.requesting=false;p.throwingTrash=false;p.active=false;p.failTimer=0;}
+        for(const p of G.passengers){p.served=false;p.requesting=false;p.throwingTrash=false;p.active=false;p.failTimer=0;p.patienceSounded=false;}
         G.trashItems=[];
         G.flyingSnacks=[];
         G.levelAnnounce=120;
@@ -605,14 +720,14 @@ function draw(){
         }
     }
 
-    // Draw trash
+    // Draw trash — 75% size
     for(const t of G.trashItems){
-        if(img.trash){X.drawImage(img.trash,t.x-14,t.y-14,28,28);}
+        if(img.trash){X.drawImage(img.trash,t.x-10,t.y-10,21,21);}
         else{
             X.fillStyle='#fff';
-            X.fillRect(t.x-11,t.y-8,22,16);
+            X.fillRect(t.x-8,t.y-6,16,12);
             X.strokeStyle='#ccc';X.lineWidth=1;
-            X.strokeRect(t.x-11,t.y-8,22,16);
+            X.strokeRect(t.x-8,t.y-6,16,12);
         }
     }
 
@@ -720,6 +835,16 @@ function draw(){
         X.textAlign='left';
     }
 
+    // Attract mode overlay — flashing "CLICK OR TAP TO START" in same position as title screen
+    if(G.attractMode){
+        const blink=Math.floor(Date.now()/500)%2;
+        if(blink){
+            X.fillStyle='#fff';X.font='bold 22px Arial';X.textAlign='center';
+            X.fillText('CLICK OR TAP TO START',W/2,H/2+16);
+            X.textAlign='left';
+        }
+    }
+
     // Game over
     if(G.over){
         X.fillStyle='rgba(0,0,0,0.75)';X.fillRect(0,0,W,H);
@@ -742,14 +867,51 @@ function draw(){
 }
 </script>
 <script>
-function gameLoop(){update();draw();requestAnimationFrame(gameLoop);}
+function gameLoop(){
+    // Attract mode logic
+    if(!G.run&&!G.over&&!G.attractMode){
+        // Title screen — count down to attract demo
+        attractTimer--;
+        if(attractTimer<=0&&attractPhase==='title'){
+            startAttractDemo();
+        }
+    }
+    if(G.attractMode){
+        if(checkAttractBreak()){
+            attractInputDetected=false;
+            endAttractDemo();
+        } else {
+            attractTimer--;
+            if(attractTimer<=0){
+                endAttractDemo();
+            } else {
+                attractAI();
+            }
+        }
+    }
+    update();draw();requestAnimationFrame(gameLoop);
+}
 const SS=document.getElementById('start-screen');
-function go(){if(!G.run&&!G.over){G.run=true;SS.classList.add('hidden');startM();
-    if('ontouchstart' in window)document.getElementById('controls').style.display='block';}}
+function go(){
+    if(G.attractMode){
+        attractInputDetected=false;
+        endAttractDemo();
+    }
+    if(!G.run&&!G.over){
+        G.run=true;SS.classList.add('hidden');startM();
+        attractPhase='title';attractTimer=ATTRACT_TITLE_DURATION;
+        if('ontouchstart' in window)document.getElementById('controls').style.display='block';
+    }
+}
 SS.addEventListener('click',go);
 SS.addEventListener('touchstart',e=>{e.preventDefault();go();},{passive:false});
 
 document.addEventListener('keydown',e=>{
+    // Any key breaks attract mode
+    if(G.attractMode){
+        attractInputDetected=true;
+        return;
+    }
     if(e.key==='ArrowUp'){e.preventDefault();movePlayer(-1);}
     if(e.key==='ArrowDown'){e.preventDefault();movePlayer(1);}
     if(e.key==='ArrowLeft'){e.preventDefault();fling(-1);}
@@ -757,13 +919,17 @@ document.addEventListener('keydown',e=>{
     if(e.key==='1')selectSnack(0);
     if(e.key==='2')selectSnack(1);
     if(e.key==='3')selectSnack(2);
-    if(e.key==='r'||e.key==='R'){initGame();G.run=true;SS.classList.add('hidden');startM();}
-    if(e.key==='q'||e.key==='Q'){stopM();initGame();SS.classList.remove('hidden');}
+    if(e.key==='r'||e.key==='R'){initGame();G.run=true;SS.classList.add('hidden');startM();attractPhase='title';attractTimer=ATTRACT_TITLE_DURATION;}
+    if(e.key==='q'||e.key==='Q'){stopM();initGame();SS.classList.remove('hidden');attractPhase='title';attractTimer=ATTRACT_TITLE_DURATION;}
 });
 
-C.addEventListener('click',()=>{if(G.over){initGame();G.run=true;startM();}});
+C.addEventListener('click',()=>{
+    if(G.attractMode){attractInputDetected=true;return;}
+    if(G.over){initGame();G.run=true;startM();attractPhase='title';attractTimer=ATTRACT_TITLE_DURATION;}
+});
 C.addEventListener('touchstart',e=>{e.preventDefault();
-    if(G.over){initGame();G.run=true;startM();}
+    if(G.attractMode){attractInputDetected=true;return;}
+    if(G.over){initGame();G.run=true;startM();attractPhase='title';attractTimer=ATTRACT_TITLE_DURATION;}
 },{passive:false});
 
 async function init(){
@@ -779,6 +945,9 @@ async function init(){
     ls('serve',A.serveSound);ls('catch',A.catchSound);
     ls('angry',A.angrySound);ls('wrong',A.wrongSound);ls('level',A.levelSound);
     ls('announce',A.announceSound);
+    ls('move',A.moveSound);ls('throw',A.throwSound);
+    ls('trashCatch',A.trashCatchSound);ls('fail',A.failSound);
+    ls('patience',A.patienceSound);ls('gameover',A.gameOverSound);
     if(A.backgroundMusic){music=new Audio(A.backgroundMusic);music.loop=true;music.volume=0.5;}
     initGame();gameLoop();
 }

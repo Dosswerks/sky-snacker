@@ -52,11 +52,15 @@ Five total misses (expired patience + missed trash) ends the game.
 ## Difficulty Progression
 
 - Completing enough deliveries advances to the next level (all active orders must be cleared first)
-- Request spawn interval starts at ~2 seconds and drops by ~0.33s per level (floor ~0.6s)
-- Patience timers start at ~9 seconds on level 1 and shrink by ~1.3s per level (floor ~4s)
+- Request spawn interval starts at ~1.5 seconds and drops by ~0.08s per level (floor ~0.8s)
+- Patience timers start at ~10 seconds on level 1 and shrink by ~0.5s per level (floor ~5s)
 - Trash return delay shortens each level, giving less breathing room
-- Trash slide speed increases by 0.2 per level
+- Trash slide speed starts at 1.0 and increases by 0.2 per level
 - More simultaneous requests appear as spawn rate increases
+
+## Attract Mode
+
+After approximately 8 seconds of idle time on the title screen, an AI-driven demo begins automatically. The demo runs a silent, invincible playthrough of level 1 for about 15 seconds, then cycles back to the title screen. "CLICK OR TAP TO START" flashes over the gameplay. Any real input (key, touch, or click) immediately breaks out of the demo and returns to the title screen; a click or tap also starts the game.
 
 ---
 
@@ -64,11 +68,11 @@ Five total misses (expired patience + missed trash) ends the game.
 
 ### Architecture
 
-Sky Snacker is a single-file HTML5 Canvas game with no external dependencies. All game logic, rendering, audio management, and input handling are contained in one `index.html` file. It runs in any modern browser on desktop or mobile.
+Sky Snacker is a single-file HTML5 Canvas game with no external dependencies (aside from a QR code library for the tip jar). All game logic, rendering, audio management, and input handling are contained in one `index.html` file. It runs in any modern browser on desktop or mobile.
 
 ### Development Process
 
-The game was developed through conversational AI-assisted coding using Kiro, following the same iterative pattern established across three prior games (Barrel Bears, Can't Drive 55, and Runway Rush).
+The game was developed through conversational AI-assisted coding using Kiro, following the same iterative pattern established across prior games in the Dosswerks Arcade collection.
 
 The core concept — Tapper on an airplane — required adapting the classic bar-service mechanic to a 2D cabin layout with:
 - A central aisle instead of multiple bars
@@ -81,13 +85,32 @@ The core concept — Tapper on an airplane — required adapting the classic bar
 
 - **Level announcement**: "LEVEL X" displays for 2 seconds before each level begins, pausing all action
 - **Level completion**: All active orders, trash, and flying snacks must be cleared before advancing — no new requests spawn once the serve target is met
-- **Thought bubble system**: Each passenger has an independent patience timer with visual color progression and urgency pulse animation
+- **Thought bubble system**: Each passenger has an independent patience timer with visual color progression and urgency pulse animation; an audio cue plays when a bubble turns red
 - **Arc trajectory**: Flung snacks follow a sine-curve arc over passenger heads to reach the target seat
 - **Auto-targeting**: Snacks automatically find the requesting passenger in the served row and side
 - **Trash physics**: Trash items slide from the served seat back toward the aisle at variable speeds that increase per level
 - **Cockpit and galley**: Drawn cockpit with fuselage curve, sky, clouds, and instrument gauge arrays for pilot/copilot stations; galley area with snack cart silhouettes and large selected-snack indicator
 - **Mobile controls**: Touch button panel appears automatically on mobile devices
 - **Sprite system**: 3-frame Bridget animation (center, left-fling, right-fling) with cart and wheels
+- **Attract mode**: AI-driven demo cycles on the title screen after idle timeout, following the same pattern used in Mountains of Madness
+- **Comprehensive sound design**: Dedicated audio cues for movement, throwing, catching trash, failures, patience warnings, and game over
+
+### Sound Design
+
+The game uses distinct sound effects for each player action and game event:
+- **move**: Bridget moves up or down the aisle
+- **throw**: Snack is flung toward a passenger
+- **serve**: Snack delivery confirmation
+- **trashCatch**: Trash successfully caught in the aisle
+- **catch**: Correct snack delivery
+- **fail**: Wrong snack, missed trash, or expired patience
+- **patience**: Warning when a passenger's thought bubble turns red
+- **gameover**: Game over sting
+- **level**: Level complete fanfare
+- **announce**: Level announcement
+- **music**: Background music loop
+
+All sounds are silenced during attract mode demos.
 
 ### Asset System
 
@@ -95,23 +118,29 @@ All custom assets are defined in the config object:
 
 ```javascript
 const A = {
-    boxArtImage: 'assets/box-art.png',       // splash screen
-    cabinImage: null,                         // 480x600 cabin background
-    bridgetCenter: null,                      // 60x80 default pose
-    bridgetLeft: null,                        // 60x80 flinging left
-    bridgetRight: null,                       // 60x80 flinging right
-    seatImage: null,                          // 60x40 seat back
-    snack0Image: null,                        // 24x24 pretzel
-    snack1Image: null,                        // 24x24 cookie
-    snack2Image: null,                        // 24x24 soda
-    trashImage: null,                         // 20x20 trash
-    serveSound: null,                         // fling sound
-    crashSound: null,                         // collision/error
-    catchSound: null,                         // catch trash or deliver
-    angrySound: null,                         // patience expired
-    wrongSound: null,                         // wrong snack
-    levelSound: null,                         // level complete
-    backgroundMusic: null,                    // loops continuously
+    boxArtImage: 'assets/box-art.png',
+    cabinImage: null,
+    bridgetCenter: 'assets/bridget-center.png',
+    bridgetLeft: 'assets/bridget-left.png',
+    bridgetRight: 'assets/bridget-right.png',
+    seatImage: 'assets/seat.png',
+    snack0Image: 'assets/snack-pretzel.png',
+    snack1Image: 'assets/snack-cookie.png',
+    snack2Image: 'assets/snack-soda.png',
+    trashImage: 'assets/trash.png',
+    serveSound: 'assets/serve.mp3',
+    catchSound: 'assets/catch.mp3',
+    angrySound: 'assets/angry.mp3',
+    wrongSound: 'assets/wrong.mp3',
+    levelSound: 'assets/level.mp3',
+    announceSound: 'assets/announce.mp3',
+    moveSound: 'assets/move.mp3',
+    throwSound: 'assets/throw.mp3',
+    trashCatchSound: 'assets/trash-catch.mp3',
+    failSound: 'assets/fail.mp3',
+    patienceSound: 'assets/patience.mp3',
+    gameOverSound: 'assets/gameover.mp3',
+    backgroundMusic: 'assets/music.mp3',
 };
 ```
 
@@ -128,19 +157,25 @@ const A = {
 | Pretzel | 24 × 24 px | PNG w/ transparency | Snack type 0 |
 | Cookie | 24 × 24 px | PNG w/ transparency | Snack type 1 |
 | Soda | 24 × 24 px | PNG w/ transparency | Snack type 2 |
-| Trash | 20 × 20 px | PNG w/ transparency | Thrown-back trash item |
+| Trash | 20 × 20 px | PNG w/ transparency | Drawn at 75% size (15 × 15 px on canvas) |
 
 ### Sound Specs
 
-| Asset | Duration | Format | Notes |
-|---|---|---|---|
-| serve | 0.2–0.4 sec | MP3 | Snack flung |
-| catch | 0.2–0.3 sec | MP3 | Trash caught or correct delivery |
-| angry | 0.3–0.5 sec | MP3 | Patience expired |
-| wrong | 0.2–0.4 sec | MP3 | Wrong snack served |
-| crash | 0.3–0.5 sec | MP3 | General error |
-| level | 0.5–1.0 sec | MP3 | Level complete |
-| music | 30–120 sec | MP3 | Background music, loops |
+| Asset | File | Duration | Format | Notes |
+|---|---|---|---|---|
+| serve | serve.mp3 | 0.2–0.4 sec | MP3 | Snack flung confirmation |
+| catch | catch.mp3 | 0.2–0.3 sec | MP3 | Correct delivery |
+| angry | angry.mp3 | 0.3–0.5 sec | MP3 | Legacy patience expired (kept for compatibility) |
+| wrong | wrong.mp3 | 0.2–0.4 sec | MP3 | Legacy wrong snack (kept for compatibility) |
+| level | level.mp3 | 0.5–1.0 sec | MP3 | Level complete |
+| announce | announce.mp3 | 0.5–1.0 sec | MP3 | Level announcement |
+| move | move.mp3 | 0.1–0.2 sec | MP3 | Player movement up/down |
+| throw | throw.mp3 | 0.2–0.3 sec | MP3 | Snack throw/fling |
+| trash-catch | trash-catch.mp3 | 0.2–0.3 sec | MP3 | Trash caught in aisle |
+| fail | fail.mp3 | 0.3–0.5 sec | MP3 | Any failure (wrong snack, missed trash, expired patience) |
+| patience | patience.mp3 | 0.3–0.5 sec | MP3 | Warning when bubble turns red |
+| gameover | gameover.mp3 | 1.0–2.0 sec | MP3 | Game over sting |
+| music | music.mp3 | 30–120 sec | MP3 | Background music, loops |
 
 ### File Structure
 
@@ -156,16 +191,22 @@ sky-snacker/
     bridget-left.png
     bridget-right.png
     seat.png
-    snack0.png (pretzel)
-    snack1.png (cookie)
-    snack2.png (soda)
+    snack-pretzel.png
+    snack-cookie.png
+    snack-soda.png
     trash.png
     serve.mp3
     catch.mp3
     angry.mp3
     wrong.mp3
-    crash.mp3
     level.mp3
+    announce.mp3
+    move.mp3
+    throw.mp3
+    trash-catch.mp3
+    fail.mp3
+    patience.mp3
+    gameover.mp3
     music.mp3
 ```
 
