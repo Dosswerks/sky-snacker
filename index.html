@@ -131,10 +131,11 @@ const A={
     wrongSound:'assets/wrong.mp3',
     levelSound:'assets/level.mp3',
     announceSound:'assets/announce.mp3',
+    levelUpSound:'assets/levelup.mp3',
     moveSound:'assets/move.mp3',
     throwSound:'assets/throw.mp3',
     trashCatchSound:'assets/trash-catch.mp3',
-    failSound:'assets/fail.mp3',
+    failSound:null,
     patienceSound:'assets/patience.mp3',
     gameOverSound:'assets/gameover.mp3',
     backgroundMusic:'assets/music.mp3',
@@ -327,7 +328,7 @@ function getSeatX(side,seat){
 function update(){
     if(!G.run||G.over)return;
     // Level announcement pause
-    if(G.levelAnnounce>0){G.levelAnnounce--;if(G.levelAnnounce===119)ps('announce');return;}
+    if(G.levelAnnounce>0){G.levelAnnounce--;if(G.levelAnnounce===119){ps('announce');ps('levelUp');}return;}
     // Spawn requests
     G.requestTimer++;
     if(G.requestTimer>=G.requestInterval&&G.levelServed<G.levelTarget){
@@ -364,7 +365,7 @@ function update(){
             if(!G.debugInvincible){
                 G.missed++;
                 G.score=Math.max(0,G.score-50);
-                ps('fail');
+                ps('angry');
                 if(G.missed>=G.maxMissed){G.over=true;stopM();ps('gameover');}
             }
             updUI();
@@ -395,7 +396,7 @@ function update(){
                     if(!G.debugInvincible){
                         G.score=Math.max(0,G.score-25);
                     }
-                    ps('fail');
+                    ps('wrong');
                 }
             }
             G.flyingSnacks.splice(i,1);
@@ -438,7 +439,7 @@ function update(){
             if(!G.debugInvincible){
                 G.missed++;
                 G.score=Math.max(0,G.score-25);
-                ps('fail');
+                ps('angry');
                 if(G.missed>=G.maxMissed){G.over=true;stopM();ps('gameover');}
             }
             updUI();
@@ -944,9 +945,9 @@ async function init(){
         SS.classList.add('has-box-art');}
     ls('serve',A.serveSound);ls('catch',A.catchSound);
     ls('angry',A.angrySound);ls('wrong',A.wrongSound);ls('level',A.levelSound);
-    ls('announce',A.announceSound);
+    ls('announce',A.announceSound);ls('levelUp',A.levelUpSound);
     ls('move',A.moveSound);ls('throw',A.throwSound);
-    ls('trashCatch',A.trashCatchSound);ls('fail',A.failSound);
+    ls('trashCatch',A.trashCatchSound);
     ls('patience',A.patienceSound);ls('gameover',A.gameOverSound);
     if(A.backgroundMusic){music=new Audio(A.backgroundMusic);music.loop=true;music.volume=0.5;}
     initGame();gameLoop();

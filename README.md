@@ -103,7 +103,8 @@ The game uses distinct sound effects for each player action and game event:
 - **serve**: Snack delivery confirmation
 - **trashCatch**: Trash successfully caught in the aisle
 - **catch**: Correct snack delivery
-- **fail**: Wrong snack, missed trash, or expired patience
+- **angry**: Patience expired or missed trash
+- **wrong**: Wrong snack delivered
 - **patience**: Warning when a passenger's thought bubble turns red
 - **gameover**: Game over sting
 - **level**: Level complete fanfare
@@ -134,10 +135,11 @@ const A = {
     wrongSound: 'assets/wrong.mp3',
     levelSound: 'assets/level.mp3',
     announceSound: 'assets/announce.mp3',
+    levelUpSound: 'assets/levelup.mp3',
     moveSound: 'assets/move.mp3',
     throwSound: 'assets/throw.mp3',
     trashCatchSound: 'assets/trash-catch.mp3',
-    failSound: 'assets/fail.mp3',
+    failSound: null,
     patienceSound: 'assets/patience.mp3',
     gameOverSound: 'assets/gameover.mp3',
     backgroundMusic: 'assets/music.mp3',
@@ -165,14 +167,14 @@ const A = {
 |---|---|---|---|---|
 | serve | serve.mp3 | 0.2–0.4 sec | MP3 | Snack flung confirmation |
 | catch | catch.mp3 | 0.2–0.3 sec | MP3 | Correct delivery |
-| angry | angry.mp3 | 0.3–0.5 sec | MP3 | Legacy patience expired (kept for compatibility) |
-| wrong | wrong.mp3 | 0.2–0.4 sec | MP3 | Legacy wrong snack (kept for compatibility) |
+| angry | angry.mp3 | 0.3–0.5 sec | MP3 | Patience expired or missed trash |
+| wrong | wrong.mp3 | 0.2–0.4 sec | MP3 | Wrong snack served |
 | level | level.mp3 | 0.5–1.0 sec | MP3 | Level complete |
 | announce | announce.mp3 | 0.5–1.0 sec | MP3 | Level announcement |
+| levelup | levelup.mp3 | 1.0–2.0 sec | MP3 | Level up fanfare with announcement |
 | move | move.mp3 | 0.1–0.2 sec | MP3 | Player movement up/down |
 | throw | throw.mp3 | 0.2–0.3 sec | MP3 | Snack throw/fling |
 | trash-catch | trash-catch.mp3 | 0.2–0.3 sec | MP3 | Trash caught in aisle |
-| fail | fail.mp3 | 0.3–0.5 sec | MP3 | Any failure (wrong snack, missed trash, expired patience) |
 | patience | patience.mp3 | 0.3–0.5 sec | MP3 | Warning when bubble turns red |
 | gameover | gameover.mp3 | 1.0–2.0 sec | MP3 | Game over sting |
 | music | music.mp3 | 30–120 sec | MP3 | Background music, loops |
@@ -201,10 +203,10 @@ sky-snacker/
     wrong.mp3
     level.mp3
     announce.mp3
+    levelup.mp3
     move.mp3
     throw.mp3
     trash-catch.mp3
-    fail.mp3
     patience.mp3
     gameover.mp3
     music.mp3
