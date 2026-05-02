@@ -135,6 +135,7 @@ const A={
     moveSound:'assets/move.mp3',
     throwSound:'assets/throw.mp3',
     trashCatchSound:'assets/trash-catch.mp3',
+    thankYouSound:'assets/thankyou.mp3',
     failSound:null,
     patienceSound:'assets/patience.mp3',
     gameOverSound:'assets/gameover.mp3',
@@ -391,6 +392,7 @@ function update(){
                     G.score+=100;
                     G.levelServed++;
                     ps('catch');
+                    ps('thankYou');
                 } else {
                     // Wrong snack
                     if(!G.debugInvincible){
@@ -948,6 +950,7 @@ async function init(){
     ls('announce',A.announceSound);ls('levelUp',A.levelUpSound);
     ls('move',A.moveSound);ls('throw',A.throwSound);
     ls('trashCatch',A.trashCatchSound);
+    ls('thankYou',A.thankYouSound);
     ls('patience',A.patienceSound);ls('gameover',A.gameOverSound);
     if(A.backgroundMusic){music=new Audio(A.backgroundMusic);music.loop=true;music.volume=0.5;}
     initGame();gameLoop();
