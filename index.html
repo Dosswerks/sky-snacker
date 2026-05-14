@@ -346,11 +346,11 @@ function update(){
             p.patience=0;
             p.patienceSounded=false;
             const mob='ontouchstart' in window;
-            p.maxPatience=mob?1200-G.level*60:900-G.level*50;
-            if(p.maxPatience<(mob?600:420))p.maxPatience=mob?600:420;
+            p.maxPatience=mob?1000-G.level*100:750-G.level*80;
+            if(p.maxPatience<(mob?400:300))p.maxPatience=mob?400:300;
         }
         // Increase difficulty
-        G.requestInterval=Math.max(60,120-G.level*8);
+        G.requestInterval=Math.max(45,120-G.level*15);
     }
     // Update patience and active states
     for(const p of G.passengers){
@@ -391,8 +391,8 @@ function update(){
                     f.target.requesting=false;
                     f.target.served=true;
                     f.target.throwingTrash=true;
-                    f.target.trashTimer=120+Math.floor(Math.random()*60)-G.level*10;
-                    if(f.target.trashTimer<40)f.target.trashTimer=40;
+                    f.target.trashTimer=100+Math.floor(Math.random()*40)-G.level*15;
+                    if(f.target.trashTimer<25)f.target.trashTimer=25;
                     G.score+=100;
                     G.levelServed++;
                     ps('catch');
@@ -456,7 +456,7 @@ function update(){
     if(G.levelServed>=G.levelTarget&&!anyActive&&G.trashItems.length===0&&G.flyingSnacks.length===0){
         G.level++;
         G.levelServed=0;
-        G.levelTarget=8+G.level*2;
+        G.levelTarget=10+G.level*3;
         // Reset passengers
         for(const p of G.passengers){p.served=false;p.requesting=false;p.throwingTrash=false;p.active=false;p.failTimer=0;p.patienceSounded=false;}
         G.trashItems=[];
